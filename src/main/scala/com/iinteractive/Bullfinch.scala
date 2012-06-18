@@ -1,18 +1,11 @@
 package com.iinteractive
 
-import com.codahale.jerkson.JsonSnakeCase
 import com.iinteractive.bullfinch._
 import grizzled.slf4j.Logging
 import java.net.{MalformedURLException,URL};
 
 object Bullfinch {
   
-  @JsonSnakeCase
-  case class Configuration(
-    configRefreshSeconds: Int = 300,
-    workers: Option[Seq[Map[String,Any]]]
-  )
-
   def main(args: Array[String]) {
     
     val configs = args flatMap { arg =>
