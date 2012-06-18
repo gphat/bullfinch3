@@ -3,6 +3,7 @@ package com.iinteractive.bullfinch
 import org.specs2.mutable._
 
 import com.iinteractive.Bullfinch
+import com.iinteractive.bullfinch.util.ConfigReader
 
 class ConfigurationSpec extends Specification {
 
@@ -18,6 +19,14 @@ class ConfigurationSpec extends Specification {
     "succeed with real urls" in {
       Bullfinch.main(Seq("http://www.example.com").toArray)
       1 mustEqual 1 // Junk, we'll throw an exception if the above fails
+    }
+  }
+  
+  "The ConfigReader" should {
+    "work" in {
+      val url = this.getClass.getClassLoader.getResource("config.json")
+      ConfigReader.read(Seq(url))
+      1 mustEqual 1
     }
   }
 }

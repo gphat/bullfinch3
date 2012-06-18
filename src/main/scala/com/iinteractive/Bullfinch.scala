@@ -1,22 +1,35 @@
 package com.iinteractive
 
+import com.codahale.jerkson.JsonSnakeCase
 import com.iinteractive.bullfinch._
 import grizzled.slf4j.Logging
 import java.net.{MalformedURLException,URL};
 
 object Bullfinch {
   
+  @JsonSnakeCase
+  case class Workers(
+    name: String,
+    workerClass: String
+  )
+  
+  case class Configuration(
+    config_refresh_seconds: Int = 300,
+    workers: Seq[Map[String,Any]]
+  )
+
   def main(args: Array[String]) {
     
-    val configs = args filter { arg =>
-      val url = try {
+    val configs = args map { arg =>
+      try {
         Some(new URL(arg))
       } catch {
         case e: MalformedURLException => None
       }
-      url.isDefined
+    } filter { arg =>
+      arg.isDefined
     } map { arg =>
-      new URL(arg)
+      arg.get
     }
 
     // Check this post-url-load, as even if we DO get some in args it's better
