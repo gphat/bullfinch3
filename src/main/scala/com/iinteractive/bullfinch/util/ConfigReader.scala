@@ -9,10 +9,14 @@ import java.net.URL
 
 object ConfigReader extends Logging {
 
+  case class Worker(
+    name: String
+  )
+
   @JsonSnakeCase
   case class Config(
     configRefreshSeconds: Int = 300,
-    workers: Option[Seq[Map[String,Any]]]
+    workers: Option[Seq[Map[String,Any]]] = None
   )
   case class ConfigSource(
     config: Config,
