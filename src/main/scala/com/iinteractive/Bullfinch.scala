@@ -8,14 +8,9 @@ import java.net.{MalformedURLException,URL};
 object Bullfinch {
   
   @JsonSnakeCase
-  case class Workers(
-    name: String,
-    workerClass: String
-  )
-  
   case class Configuration(
-    config_refresh_seconds: Int = 300,
-    workers: Seq[Map[String,Any]]
+    configRefreshSeconds: Int = 300,
+    workers: Option[Seq[Map[String,Any]]]
   )
 
   def main(args: Array[String]) {
