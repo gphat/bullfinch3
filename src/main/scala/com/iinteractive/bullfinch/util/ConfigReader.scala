@@ -11,7 +11,7 @@ object ConfigReader extends Logging {
   
   def read(configs: Seq[URL]): Seq[Configuration] = {
     
-    configs.map { config =>
+    configs.flatMap { config =>
       try {
         debug("Attempting to read '" + config + "'")
 
@@ -30,10 +30,6 @@ object ConfigReader extends Logging {
           None
         }
       }
-    } filter { config =>
-      config.isDefined
-    } map { config =>
-      config.get
     }
   }
 }

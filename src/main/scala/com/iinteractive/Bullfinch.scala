@@ -20,16 +20,12 @@ object Bullfinch {
 
   def main(args: Array[String]) {
     
-    val configs = args map { arg =>
+    val configs = args flatMap { arg =>
       try {
         Some(new URL(arg))
       } catch {
         case e: MalformedURLException => None
       }
-    } filter { arg =>
-      arg.isDefined
-    } map { arg =>
-      arg.get
     }
 
     // Check this post-url-load, as even if we DO get some in args it's better
