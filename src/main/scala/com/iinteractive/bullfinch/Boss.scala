@@ -4,17 +4,15 @@ import com.iinteractive.bullfinch.util.ConfigReader
 import grizzled.slf4j.Logging
 import java.net.URL
 
-class Boss(configs : Seq[URL]) extends Logging {
+class Boss(urls : Seq[URL]) extends Logging {
   
-  val configURLs = ConfigReader.read(configs)
-  val configTimestamps : Seq[Long] = Seq()
-  
-  def restart() {
-    
-  }
+  val configs = ConfigReader.read(urls)
   
   def start() {
     
+    configs map { conf =>
+      println(conf)
+    }
   }
   
   def stop() {

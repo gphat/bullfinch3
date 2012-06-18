@@ -23,6 +23,7 @@ object Bullfinch {
       return
     }
     
-    val boss = new Boss(configs = configs)
+    val boss = new Boss(urls = configs)
+    boss.start
   }
 }
