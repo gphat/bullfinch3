@@ -17,15 +17,18 @@ trait QueueMonitor extends KestrelBased {
 
       log.error("Opening item from queue")
 
-      val write = new Write("""{"response_queue": "foo", "statement": "bar"}""")
-      client.getSendQueue(queue).put(write)
-      write.awaitWrite
+      // val write = new Write("""{"response_queue": "foo", "statement": "bar"}""")
+      // client.getSendQueue(queue).put(write)
+      // write.awaitWrite
       
-      val foo = new String(client.getRecvQueue(queue).poll(timeout, TimeUnit.MILLISECONDS).array)
-      if(foo != null) {
-        log.error("Got: " + foo)
-        process(foo)
+      val msg = client.getRecvTransQueue(queue).poll(timeout, TimeUnit.MILLISECONDS)
+      if(msg != null) {
+        log.error("Got: " + msg)
+        process(new String(msg.message.array))
+        msg.close()
       }
+      
+      Thread.sleep(250)
     }
   }
   

@@ -15,6 +15,7 @@ trait KestrelBased extends Minion {
     val c = new Config()
     c.addServer(host + ":" + port.toString)
     c.addQueue(queue)
+    c.recvTransactional = true
     new GrabbyHands(c)
   }
 
@@ -35,6 +36,6 @@ trait KestrelBased extends Minion {
     writeClient.getSendQueue(queue).put(write)
     write.awaitWrite
 
-    log.debug("Wrote: " + message)
+    log.debug("Wrote: " + message + " to " + queue)
   }
 }

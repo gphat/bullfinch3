@@ -30,6 +30,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
         val c = new Config()
         c.addServer(host + ":" + port.toString)
         c.addQueue(name)
+        c.sendQueueDepth = 0
         Some(new GrabbyHands(c))
       }
       case None => None
