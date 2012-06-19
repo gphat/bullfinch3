@@ -18,7 +18,8 @@ class Boss(urls: Seq[URL]) extends Logging {
   )
   
   def start() {
-    
+
+    log.info("Starting workers")
     workers.foreach { worker =>
       worker._3.start()
     }

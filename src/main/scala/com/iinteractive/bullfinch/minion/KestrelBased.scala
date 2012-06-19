@@ -9,7 +9,9 @@ trait KestrelBased extends Minion {
   val host = getConfigOrElse[String]("kestrel_host", "127.0.0.1")
   val port = getConfigOrElse[Int]("kestrel_port", 22133)
   val queue = getConfigOrElse[String]("subscribe_to", "bullfinch")
-  val client = {
+  val timeout = getConfigOrElse[Int]("timeout", 10000)
+  lazy val client = {
+    log.debug("Connection to " + host + ":" + port + ", queue " + queue)
     val c = new Config()
     c.addServer(host + ":" + port.toString)
     c.addQueue(queue)
@@ -19,5 +21,11 @@ trait KestrelBased extends Minion {
   override def configure {
     super.configure
     log.info("Configure in KestrelBased")
+  }
+  
+  override def cancel {
+    super.cancel
+    
+    client.join
   }
 }

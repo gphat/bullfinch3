@@ -10,11 +10,11 @@ object Bullfinch {
   Logging.configure { log =>
     log.registerWithJMX = true
 
-    log.level = Level.INFO
+    log.level = Level.DEBUG
     // log.loggers("com.myproject.weebits") = Level.OFF
 
     log.console.enabled = true
-    log.console.threshold = Level.WARN
+    log.console.threshold = Level.DEBUG
 
     // log.file.enabled = true
     // log.file.filename = "/var/log/myapp/myapp.log"
