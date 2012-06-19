@@ -43,9 +43,9 @@ class Boss(urls: Seq[URL]) extends Logging {
     }
     
     workerConfigs.map { wc =>
-      val ins = Class.forName(wc.className).newInstance.asInstanceOf[Minion]
+      val ins = Class.forName(wc.className).getDeclaredConstructor(classOf[Map[String,Any]]).newInstance(Map("foo" -> "bar")).asInstanceOf[Minion]
       println(ins)
-      ins.configure(Map("foo" -> "bar"))
+      ins.configure
     }
   }
 }

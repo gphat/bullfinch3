@@ -5,8 +5,8 @@ import com.iinteractive.bullfinch.Minion
 
 trait KestrelBased extends Minion {
   
-  override def configure(config: Map[String,Any]) = {
-    super.configure(config)
+  override def configure {
+    super.configure
     println("Configure in KestrelBased")
     // val host = config.get("kestrel_host") match {
     //   case Some(x) => x.asInstanceOf[String]
