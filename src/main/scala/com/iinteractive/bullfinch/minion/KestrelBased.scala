@@ -2,8 +2,14 @@ package com.iinteractive.bullfinch.minion
 
 import com.twitter.grabbyhands._
 import com.iinteractive.bullfinch.Minion
+import scala.collection.JavaConversions._
 
 trait KestrelBased extends Minion {
+  
+  val host = config match {
+    case Some(c) => c.getOrElse("kestrel_host", "127.0.0.1")
+    case None => "127.0.0.1"
+  }
   
   override def configure {
     super.configure

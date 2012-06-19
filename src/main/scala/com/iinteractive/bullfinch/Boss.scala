@@ -3,6 +3,7 @@ package com.iinteractive.bullfinch
 import com.iinteractive.bullfinch.util.ConfigReader
 import grizzled.slf4j.Logging
 import java.net.URL
+import scala.collection.JavaConversions._
 
 class Boss(urls: Seq[URL]) extends Logging {
   
@@ -11,8 +12,8 @@ class Boss(urls: Seq[URL]) extends Logging {
   case class WorkerConfig(
     name: String,
     className: String,
-    count: Some[Int],
-    options: Some[Map[String,Any]]
+    count: Option[Int],
+    options: Option[Map[String,Int]]
   )
   
   def start() {
@@ -33,8 +34,13 @@ class Boss(urls: Seq[URL]) extends Logging {
             WorkerConfig(
               name      = wc.get("name").get.asInstanceOf[String],
               className = wc.get("worker_class").get.asInstanceOf[String],
-              count     = wc.get("worker_count").asInstanceOf[Some[Int]],
-              options   = wc.get("options").asInstanceOf[Some[Map[String,Any]]]
+              count     = wc.get("worker_count").asInstanceOf[Option[Int]],
+              options   = wc.get("options").asInstanceOf[Option[java.util.LinkedHashMap[String,Int]]] match {
+                // This bit of pattern matching is to conver the LinkedHashMap
+                // to a scala map for convenience.
+                case Some(m) => Some(m.toMap)
+                case None => None
+              }
             )
           }
         }
@@ -43,7 +49,9 @@ class Boss(urls: Seq[URL]) extends Logging {
     }
     
     workerConfigs.map { wc =>
-      val ins = Class.forName(wc.className).getDeclaredConstructor(classOf[Map[String,Any]]).newInstance(Map("foo" -> "bar")).asInstanceOf[Minion]
+      val ins = Class.forName(wc.className).getDeclaredConstructor(
+        classOf[Option[Map[String,Any]]]
+      ).newInstance(wc.options).asInstanceOf[Minion]
       println(ins)
       ins.configure
     }

@@ -1,6 +1,6 @@
 package com.iinteractive.bullfinch
 
-class Minion(config: Map[String,Any]) {
+class Minion(protected val config: Option[Map[String,Any]]) {
 
   var cancelled = false
   
