@@ -1,11 +1,11 @@
 package com.iinteractive.bullfinch
 
-trait Minion {
+class Minion {
   
   var cancelled = false
   
-  def configure(config: Map[String,Any]) {
-    println("configure in Minion")
+  def configure(config: Map[String,Any]) = {
+    println("Configure in Minion")
   }
   
   def cancel = {

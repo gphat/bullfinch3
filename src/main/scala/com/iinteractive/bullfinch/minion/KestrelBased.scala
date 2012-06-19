@@ -1,19 +1,21 @@
 package com.iinteractive.bullfinch.minion
 
 import com.twitter.grabbyhands._
+import com.iinteractive.bullfinch.Minion
 
-trait KestrelBased {
+trait KestrelBased extends Minion {
   
-  def configure(config: Map[String,Any]) = {
-
+  override def configure(config: Map[String,Any]) = {
+    super.configure(config)
+    println("Configure in KestrelBased")
     // val host = config.get("kestrel_host") match {
     //   case Some(x) => x.asInstanceOf[String]
     //   case None => //
     // }
     
-    val config = new Config()
-    config.addServer("127.0.0.1:22133")
-    config.addQueue("test-net-kestrel")
-    val grabby = new GrabbyHands(config)
+    val c = new Config()
+    c.addServer("127.0.0.1:22133")
+    c.addQueue("test-net-kestrel")
+    val grabby = new GrabbyHands(c)
   }
 }
