@@ -15,7 +15,7 @@ case class Request(
 
 trait QueueMonitor extends KestrelBased {
 
-  def handle(responseQueue: String, request: Map[String,Any])
+  def handle(request: Request)
 
   override def configure {
     super.configure
@@ -42,5 +42,12 @@ trait QueueMonitor extends KestrelBased {
   def process(request: String) {
 
     val req = parse[Request](request)
+    handle(req)
+
+    // If we got a responseQueue, cap it off
+    req.responseQueue match {
+      case Some(queue) => sendMessage(queue, """{ "EOF":"EOF" }""")
+      case None => // Do nothing!
+    }
   }
 }

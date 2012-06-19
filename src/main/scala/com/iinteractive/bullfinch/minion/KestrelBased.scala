@@ -28,4 +28,10 @@ trait KestrelBased extends Minion {
     
     client.join
   }
+  
+  def sendMessage(queue: String, message: String) {
+
+    // XXX
+    log.debug("Wrote: " + message)
+  }
 }
