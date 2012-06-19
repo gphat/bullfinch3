@@ -1,6 +1,7 @@
 package com.iinteractive.bullfinch
 
 import com.codahale.logula.Logging
+import scala.collection.JavaConversions._
 
 abstract class Minion(protected val config: Option[Map[String,Any]]) extends Runnable with Logging {
 

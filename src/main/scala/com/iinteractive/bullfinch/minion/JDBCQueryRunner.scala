@@ -11,5 +11,6 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
   
   override def handle(request: Request) {
     
+    log.info("Handling request!")
   }
 }
