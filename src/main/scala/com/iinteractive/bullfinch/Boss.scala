@@ -26,7 +26,7 @@ class Boss(urls: Seq[URL]) extends Logging {
   
   private def prepareWorkers {
     
-    val workerConfigs = configs.map { cs =>
+    val workerConfigs = configs.flatMap { cs =>
       cs.config.workers match {
         case Some(w) => {
           w.map { wc =>
@@ -43,7 +43,9 @@ class Boss(urls: Seq[URL]) extends Logging {
     }
     
     workerConfigs.map { wc =>
-      // Load it! XXX
+      val ins = Class.forName(wc.className).newInstance.asInstanceOf[Minion]
+      println(ins)
+      ins.configure(Map("foo" -> "bar"))
     }
   }
 }
