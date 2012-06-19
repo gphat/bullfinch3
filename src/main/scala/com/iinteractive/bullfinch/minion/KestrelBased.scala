@@ -29,9 +29,12 @@ trait KestrelBased extends Minion {
     client.join
   }
   
-  def sendMessage(queue: String, message: String) {
+  def sendMessage(writeClient: GrabbyHands, queue: String, message: String) {
 
-    // XXX
+    val write = new Write(queue)
+    writeClient.getSendQueue(queue).put(write)
+    write.awaitWrite
+
     log.debug("Wrote: " + message)
   }
 }
