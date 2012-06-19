@@ -10,5 +10,6 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
   }
 
   def run = {
+    println("Running QueryRunner")
   }  
 }

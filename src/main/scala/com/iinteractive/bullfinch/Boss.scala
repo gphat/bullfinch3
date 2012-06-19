@@ -18,14 +18,17 @@ class Boss(urls: Seq[URL]) extends Logging {
   
   def start() {
     
-    prepareWorkers
+    val workers = prepareWorkers
+    workers.foreach { worker =>
+      worker._2.start()
+    }
   }
   
   def stop() {
     
   }
   
-  private def prepareWorkers {
+  private def prepareWorkers: Seq[(String,Thread)] = {
     
     val workerConfigs = configs.flatMap { cs =>
       cs.config.workers match {
@@ -54,6 +57,7 @@ class Boss(urls: Seq[URL]) extends Logging {
       ).newInstance(wc.options).asInstanceOf[Minion]
       println(ins)
       ins.configure
+      (wc.name, new Thread(ins))
     }
   }
 }

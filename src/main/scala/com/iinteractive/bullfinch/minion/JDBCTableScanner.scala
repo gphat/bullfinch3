@@ -11,5 +11,6 @@ class JDBCTableScanner(config: Option[Map[String,Any]]) extends Minion(config) w
   }
   
   def run = {
+    println("Running TableScanner")
   }
 }
