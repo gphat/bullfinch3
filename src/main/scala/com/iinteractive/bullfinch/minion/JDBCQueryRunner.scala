@@ -2,14 +2,18 @@ package com.iinteractive.bullfinch.minion
 
 import com.iinteractive.bullfinch.Minion
 
-class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) with Runnable with KestrelBased {
+class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) with KestrelBased {
 
   override def configure {
     super.configure
-    println("Configure in JDBC")
+    log.debug("Configure in JDBC")
   }
 
   def run = {
-    println("Running QueryRunner")
+
+    while(this.shouldContinue) {
+      log.error("table scanner")
+      Thread.sleep(500)
+    }
   }  
 }

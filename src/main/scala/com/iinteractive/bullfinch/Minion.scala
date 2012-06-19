@@ -1,11 +1,13 @@
 package com.iinteractive.bullfinch
 
-abstract class Minion(protected val config: Option[Map[String,Any]]) extends Runnable {
+import com.codahale.logula.Logging
+
+abstract class Minion(protected val config: Option[Map[String,Any]]) extends Runnable with Logging {
 
   var cancelled = false
   
   def configure {
-    println("Configure in Minion")
+    log.info("Configure in Minion")
   }
   
   def getConfigOrElse[A](key: String, default: A): A = {
@@ -19,6 +21,7 @@ abstract class Minion(protected val config: Option[Map[String,Any]]) extends Run
   }
   
   def cancel = {
+    log.error("Got cancel")
     this.cancelled = true
   }
   

@@ -18,6 +18,6 @@ trait KestrelBased extends Minion {
 
   override def configure {
     super.configure
-    println("Configure in KestrelBased")
+    log.info("Configure in KestrelBased")
   }
 }
