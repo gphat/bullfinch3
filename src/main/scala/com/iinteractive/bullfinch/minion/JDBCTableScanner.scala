@@ -12,7 +12,7 @@ class JDBCTableScanner(config: Option[Map[String,Any]]) extends Minion(config) w
   def run = {
 
     while(this.shouldContinue) {
-      log.error("query runner")
+      log.error("table scanner")
       Thread.sleep(500)
     }
   }

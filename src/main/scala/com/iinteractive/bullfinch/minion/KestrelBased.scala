@@ -1,7 +1,9 @@
 package com.iinteractive.bullfinch.minion
 
-import com.twitter.grabbyhands._
 import com.iinteractive.bullfinch.Minion
+import java.net.InetSocketAddress
+import java.util.concurrent.TimeUnit
+import net.spy.memcached.{MemcachedClient,OperationTimeoutException}
 import scala.collection.JavaConversions._
 
 trait KestrelBased extends Minion {
@@ -10,14 +12,9 @@ trait KestrelBased extends Minion {
   val port = getConfigOrElse[Int]("kestrel_port", 22133)
   val queue = getConfigOrElse[String]("subscribe_to", "bullfinch")
   val timeout = getConfigOrElse[Int]("timeout", 10000)
-  lazy val client = {
-    log.debug("Connection to " + host + ":" + port + ", queue " + queue)
-    val c = new Config()
-    c.addServer(host + ":" + port.toString)
-    c.addQueue(queue)
-    c.recvTransactional = true
-    new GrabbyHands(c)
-  }
+  lazy val client = new MemcachedClient(
+    new InetSocketAddress(host, port)
+  )
 
   override def configure {
     super.configure
@@ -27,15 +24,37 @@ trait KestrelBased extends Minion {
   override def cancel {
     super.cancel
     
-    client.join
+    client.shutdown(10, TimeUnit.SECONDS)
   }
   
-  def sendMessage(writeClient: GrabbyHands, queue: String, message: String) {
+  def confirm(queue: String) {
+    
+    log.debug("Closing " + queue)
+    client.get(queue + "/close")
+  }
+  
+  def getMessage(queue: String, tout: Int = timeout): Option[String] = {
+    
+    try {
+      val resp = client.get(queue + "/open/t=" + tout).asInstanceOf[String]
+      if(resp == null) {
+        None
+      } else {
+        log.debug("Opened transaction with " + queue)
+        Some(resp)
+      }
+    } catch {
+      case ote: OperationTimeoutException => None
+      case e: Exception => {
+        log.error("Caught an exception:", e)
+        None
+      }
+    }
+  }
+  
+  def sendMessage(queue: String, message: String) {
 
-    val write = new Write(queue)
-    writeClient.getSendQueue(queue).put(write)
-    write.awaitWrite
-
+    client.set(queue, 0, message)
     log.debug("Wrote: " + message + " to " + queue)
   }
 }
