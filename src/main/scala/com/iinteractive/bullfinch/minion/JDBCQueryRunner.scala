@@ -89,6 +89,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     // A bit lengthy, but we want to iterate over the params in pairs and
     // we need the index for the statements set so we'll end up with
     // Tuple2(Tuple2(PARAMTYPE,PARAM),INDEX))
+    // Also, view is used to prevent the creation of intermediary lists.
     statementParams.view.zip(requestParams).view.zipWithIndex.foreach { bits =>
       val pair = bits._1
       val index = bits._2 + 1
@@ -110,6 +111,8 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
   }
   
   override def handle(json: String) {
+
+    log.info("Handling request...")
 
     val request = parse[Request](json)
     var conn: Option[Connection] = None
@@ -148,8 +151,10 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
             case None => // No response to send
           }
         }
-        case Left(err) => // Got an error
+        case Left(err) => // XXX Got an error
       }
+    // } catch {
+    //   asdasd XXXX
     } finally {
       // Close up all the things that need to be closed
       conn match {
@@ -165,7 +170,5 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
         case None => //
       }
     }
-
-    log.info("Handling request!")    
   }
 }

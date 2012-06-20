@@ -1,7 +1,7 @@
 package com.iinteractive.bullfinch.util
 
 import com.codahale.logula.Logging
-import java.sql.{ResultSet,Types}
+import java.sql.{ResultSet,SQLException,Types}
 import com.codahale.jerkson.Json._
 
 case class Column(
@@ -60,7 +60,30 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
     columns.foreach { col =>
       col.ctype match {
         case Types.CHAR | Types.VARCHAR | Types.LONGVARCHAR => obj += (col.label -> resultSet.getString(col.index))
-        case _ => // Nothing!
+        case Types.NUMERIC | Types.DECIMAL                  => obj += (col.label -> resultSet.getBigDecimal(col.index))
+        case Types.BIT | Types.BOOLEAN                      => obj += (col.label -> resultSet.getBoolean(col.index))
+        case Types.TINYINT | Types.SMALLINT | Types.INTEGER => obj += (col.label -> resultSet.getInt(col.index))
+        case Types.BIGINT                                   => obj += (col.label -> resultSet.getLong(col.index))
+        case Types.REAL | Types.FLOAT                       => obj += (col.label -> resultSet.getFloat(col.index))
+        case Types.DOUBLE                                   => obj += (col.label -> resultSet.getDouble(col.index))
+        case Types.TIMESTAMP                                => obj += (col.label -> resultSet.getString(col.index))
+        case Types.DATE                                     => {
+          val res = resultSet.getDate(col.index)
+          val str = res match {
+            case null => null
+            case _ => res.toString
+          }
+          obj += (col.label -> str)
+        }
+        case Types.TIME                                     => {
+          val res = resultSet.getTime(col.index)
+          val str = res match {
+            case null => null
+            case _ => res.toString
+          }
+          obj += (col.label -> str)
+        }
+        case _ => throw new SQLException("Unrecognized type for column " + col.label + ": " + col.ctype)
       }
     }
     
