@@ -26,6 +26,10 @@
                     "goodTable": {
                         "sql": "SELECT current_timestamp"
                     },
+                    "getProject": {
+                        "sql": "SELECT * FROM projects WHERE id=?",
+                        "params": [ "INTEGER" ]
+                    },
                     "getInt" : {
                         "sql"    : "SELECT an_int FROM PUBLIC.TEST_TABLE WHERE an_int=?",
                         "params" : [ "INTEGER" ]
