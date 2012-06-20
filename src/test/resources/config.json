@@ -24,7 +24,7 @@
                         "sql": "SELECT current_timestamp FROM public.TESTES_TABLE"
                     },
                     "goodTable": {
-                        "sql": "SELECT value FROM foobar"
+                        "sql": "SELECT current_timestamp"
                     },
                     "getInt" : {
                         "sql"    : "SELECT an_int FROM PUBLIC.TEST_TABLE WHERE an_int=?",

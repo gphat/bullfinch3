@@ -8,6 +8,7 @@ libraryDependencies ++= Seq(
   "org.specs2"                %% "specs2"                 % "1.11"           % "test",
   "com.codahale"              %% "logula"                 % "2.1.3",
   "com.codahale"              %% "jerkson"                % "0.5.0",
+  "commons-dbcp"              % "commons-dbcp"            % "1.4",
   "spy"                       % "spymemcached"            % "2.8.1"
 )
 

@@ -12,7 +12,7 @@ case class Request(
   params: Option[Seq[String]]
 )
 
-class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) with QueueMonitor {
+class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) with QueueMonitor with JDBCBased {
 
   override def configure {
     super.configure
