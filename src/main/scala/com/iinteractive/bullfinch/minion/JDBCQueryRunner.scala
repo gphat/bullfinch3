@@ -110,57 +110,75 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     log.debug("Configure in JDBC")
   }
   
+  // XXX http://jim-mcbeath.blogspot.com/2008/09/creating-control-constructs-in-scala.html
+  def withConnection(body: (Connection) => Unit) {
+
+    val conn = pool.getConnection
+    try {
+      body(conn)
+      // Verify this isn't eating all exceptions
+    } finally {
+      if(conn != null) {
+        try {
+          conn.close
+        } catch {
+          case ex: Exception => log.error("Error releasing database connection: ", ex)
+        }
+      }
+    }
+  }
+
   override def handle(json: String) {
 
     log.info("Handling request...")
 
     val request = parse[Request](json)
-    var conn: Option[Connection] = None
+    // var conn: Option[Connection] = None
     var ps: Option[PreparedStatement] = None
     var rs: Option[ResultSet] = None
 
     try {
-      conn = Some(pool.getConnection())
+      withConnection { conn =>
+        val result = bindAndExecuteQuery(conn, request)
+        result match {
+          case Right(statement) => {
+            // Things bound and executed
+            ps = Some(statement)
 
-      // Attempt to bind and execute the query
-      val result = bindAndExecuteQuery(conn.get, request)
-      result match {
-        case Right(statement) => {
-          // Things bound and executed
-          ps = Some(statement)
-
-          request.responseQueue match {
-            case Some(rqueue) => {
-              // If we have a response queue then we need to send some sort
-              // of response, even if it's just the EOF
-              statement.getResultSet match {
-                case resultSet: ResultSet => {
-                  // Since we have a response queue and a resultset, we need
-                  // to encode it and send it back
-                  rs = Some(resultSet)
-                  val wrapper = new JSONResultSetWrapper(resultSet = resultSet)
-                  wrapper.foreach { message =>
-                    sendMessage(rqueue, message)
+            request.responseQueue match {
+              case Some(rqueue) => {
+                // If we have a response queue then we need to send some sort
+                // of response, even if it's just the EOF
+                statement.getResultSet match {
+                  case resultSet: ResultSet => {
+                    // Since we have a response queue and a resultset, we need
+                    // to encode it and send it back
+                    rs = Some(resultSet)
+                    val wrapper = new JSONResultSetWrapper(resultSet = resultSet)
+                    wrapper.foreach { message =>
+                      sendMessage(rqueue, message)
+                    }
                   }
+                  case null => // no resultset
                 }
-                case null => // no resultset
+                // Cap things off with the EOF
+                sendMessage(rqueue, """{ "EOF":"EOF" }""")
               }
-              // Cap things off with the EOF
-              sendMessage(rqueue, """{ "EOF":"EOF" }""")
+              case None => // No response to send
             }
-            case None => // No response to send
           }
+          case Left(err) => // XXX Got an error
         }
-        case Left(err) => // XXX Got an error
       }
+      // Attempt to bind and execute the query
     // } catch {
     //   asdasd XXXX
     } finally {
       // Close up all the things that need to be closed
-      conn match {
-        case Some(c) => try { c.close } catch { case e: Exception => } // HONEY BADGER
-        case None => //
-      }
+      // conn match {
+      //   case Some(c) => try { c.close } catch { case e: Exception => } // HONEY BADGER
+      //   case None => //
+      // }
       rs match {
         case Some(r) => try { r.close } catch { case e: Exception => } // HONEY BADGER
         case None => //
