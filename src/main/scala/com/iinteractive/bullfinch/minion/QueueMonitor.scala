@@ -1,8 +1,5 @@
 package com.iinteractive.bullfinch.minion
 
-// import java.util.concurrent.TimeUnit
-// import com.twitter.grabbyhands.Write
-
 trait QueueMonitor extends KestrelBased {
 
   def handle(request: String)
@@ -17,10 +14,6 @@ trait QueueMonitor extends KestrelBased {
 
       log.error("Opening item from queue")
 
-      // val write = new Write("""{"response_queue": "foo", "statement": "bar"}""")
-      // client.getSendQueue(queue).put(write)
-      // write.awaitWrite
-
       val resp = getMessage(queue)
       resp match {
         case Some(x) => {
@@ -29,12 +22,6 @@ trait QueueMonitor extends KestrelBased {
         }
         case None => // Continue looping, no data that time
       }
-      // val msg = client.getRecvTransQueue(queue).poll(timeout, TimeUnit.MILLISECONDS)
-      // if(msg != null) {
-      //   log.error("Got: " + msg)
-      //   process(new String(msg.message.array))
-      //   msg.close()
-      // }
       
       Thread.sleep(250)
     }
