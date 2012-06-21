@@ -7,8 +7,8 @@ scalaVersion := "2.9.1"
 libraryDependencies ++= Seq(
   "org.specs2"                %% "specs2"                 % "1.11"           % "test",
   "com.codahale"              %% "logula"                 % "2.1.3",
-  "com.codahale"              %% "jerkson"                % "0.5.0",
   "commons-dbcp"              % "commons-dbcp"            % "1.4",
+  "net.liftweb"               %% "lift-json"              % "2.4",
   "mysql"                     % "mysql-connector-java"    % "5.1.20",
   "spy"                       % "spymemcached"            % "2.8.1"
 )

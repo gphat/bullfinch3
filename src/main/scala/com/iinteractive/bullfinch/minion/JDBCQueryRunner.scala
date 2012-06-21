@@ -1,16 +1,13 @@
 package com.iinteractive.bullfinch.minion
 
-import com.codahale.jerkson.AST._
-import com.codahale.jerkson.Json._
-import com.codahale.jerkson.JsonSnakeCase
 import com.iinteractive.bullfinch._
 import com.iinteractive.bullfinch.util.JSONResultSetWrapper
 import java.sql.{Connection,PreparedStatement,ResultSet}
 import java.util.{ArrayList,LinkedHashMap}
+import net.liftweb.json._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Buffer
 
-@JsonSnakeCase
 case class Request(
   responseQueue: Option[String],
   statement: String,
@@ -23,6 +20,8 @@ case class Statement(
 )
 
 class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) with QueueMonitor with JDBCBased {
+
+  implicit val formats = DefaultFormats
 
   val statementConfig = config.get("statements").asInstanceOf[LinkedHashMap[String,Object]].toMap
   val statements = statementConfig.mapValues { more =>
@@ -132,7 +131,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
 
     log.info("Handling request...")
 
-    val request = parse[Request](json)
+    val request = parse(json).extract[Request]
     // var conn: Option[Connection] = None
     var ps: Option[PreparedStatement] = None
     var rs: Option[ResultSet] = None

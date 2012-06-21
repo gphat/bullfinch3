@@ -2,7 +2,11 @@ package com.iinteractive.bullfinch.util
 
 import com.codahale.logula.Logging
 import java.sql.{ResultSet,SQLException,Types}
-import com.codahale.jerkson.Json._
+import net.liftweb.json.DefaultFormats
+import net.liftweb.json.Extraction._
+import net.liftweb.json.JsonAST._
+import scala.collection.JavaConversions._
+import net.liftweb.json.Printer._
 
 case class Column(
   index: Int,
@@ -11,6 +15,8 @@ case class Column(
 )
 
 class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with Logging {
+
+  implicit val formats = DefaultFormats
 
 	// Use this as a sentinel to determine if we've already called next(), this
 	// way we can peek ahead in the hasNext.
@@ -90,6 +96,6 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
     // Reset the sentinel so that the next hasNext will work
     checkedNext = false
     
-    generate(obj)
+    compact(render(decompose(obj)))
   }
 }

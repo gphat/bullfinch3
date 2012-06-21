@@ -1,22 +1,17 @@
 package com.iinteractive.bullfinch.util
 
-import com.codahale.jerkson.AST._
-import com.codahale.jerkson.Json._
-import com.codahale.jerkson.JsonSnakeCase
 import com.codahale.logula.Logging
-import java.io.InputStreamReader
+import java.io.{BufferedReader,InputStreamReader}
 import java.net.URL
+import net.liftweb.json._
 
 object ConfigReader extends Logging {
 
-  @JsonSnakeCase
-  case class Config(
-    configRefreshSeconds: Int = 300,
-    workers: Option[Seq[Map[String,Any]]] = None
-  )
+  implicit val formats = DefaultFormats
 
   case class ConfigSource(
-    config: Config,
+    configRefreshSeconds: Int,
+    config: Map[String,Any],
     lastModified: Long,
     url: URL
   )
@@ -32,9 +27,28 @@ object ConfigReader extends Logging {
         
         log.debug("Last modified: " + lastModified)
         
-        val config = parse[Config](new java.io.InputStreamReader(url.openStream))
+        val buff = new BufferedReader(new InputStreamReader(url.openStream, "UTF-8"))
+        var line = buff.readLine
+        var sb = new StringBuffer
+        while(line != null) {
+          sb.append(line)
+          sb.append("\n")
+          line = buff.readLine
+        }
+
+        println(sb.toString)
+        val config = parse(sb.toString).asInstanceOf[JObject].values
+        println(config.get("config_refresh_seconds"))
         
         Some(ConfigSource(
+          configRefreshSeconds = config.getOrElse("config_refresh_seconds", 300),
+          // configRefreshSeconds = config find {
+          //   case JField("config_refresh_seconds", _) => true
+          //   case _ => false
+          // } match {
+          //   case Some(x) => x.extract[Int]
+          //   case None => 300
+          // },
           config = config,
           lastModified = lastModified,
           url = url
@@ -43,10 +57,11 @@ object ConfigReader extends Logging {
         // We don't really care why the config failed, we just report
         // the erro rand move on
         case e => {
+          e.printStackTrace
           log.error("Failed to parse config '" + url + "', stacktrace follows", e)
           None
         }
       }
     }
-  }  
+  } 
 }
