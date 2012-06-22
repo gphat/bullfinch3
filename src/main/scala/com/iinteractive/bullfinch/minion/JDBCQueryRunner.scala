@@ -96,6 +96,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
   implicit val formats = DefaultFormats
   
   val statementConfig = config.get("statements").asInstanceOf[Map[String,Any]]
+
   println(statementConfig.values.size)
   val statements = statementConfig.mapValues { more =>
     val newmap = more.asInstanceOf[Map[String,Object]]
@@ -103,10 +104,10 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
       case Some(sql) => sql.asInstanceOf[String]
       case None => throw new RuntimeException("JDBC Query Runner worker statements must have SQL")
     }
-    val params: Option[Seq[String]] = newmap.get("params").asInstanceOf[Option[Seq[String]]]
+
     Statement(
       sql = sql,
-      params = params
+      params = newmap.get("params").asInstanceOf[Option[Seq[String]]]
     )
   }
 
@@ -193,8 +194,6 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
   override def handle(json: String) {
 
     log.info("Handling request...")
-
-    var rs: Option[ResultSet] = None
 
     // Try and turn the JSON into a Request
     val request = try {

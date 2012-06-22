@@ -49,7 +49,6 @@ trait JDBCBased extends Minion {
 		ds
   }
   
-  // XXX http://jim-mcbeath.blogspot.com/2008/09/creating-control-constructs-in-scala.html
   /**
    * Wrapper function for functions that would like a database connection.
    * Automatically closes the connection.  Does not catch exceptions.
