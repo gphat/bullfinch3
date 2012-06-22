@@ -38,47 +38,38 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     )
   }
 
-  def bindAndExecuteQuery(conn: Connection, request: Request): Either[String,PreparedStatement] = {
-    
-    val prepStatement = statements.get(request.statement) match {
-      // First we verify that we have a statement by that name
-      case Some(more) => {
-        try {
-          val prep = conn.prepareStatement(more.sql)
+  def encodeResponse(queue: String, resultSet: ResultSet) {
+    new JSONResultSetWrapper(resultSet) foreach { message =>
+      sendMessage(queue, message)
+    }
+  }
+
+  def bindAndExecuteQuery(request: Request, statement: Statement) {
+    withConnection { conn =>
+      try {
+        withStatement(conn, statement.sql) { prep =>
           // Check if this statement requires parameters
-          more.params match {
-            case Some(params) => {
-              request.params match {
-                // Since we require params, did we get them from the request?
-                case Some(requestParams) if requestParams.size == params.size => {
-                  applyParams(prep, params, requestParams)
-                  Right(prep)
+          statement.params map { statementParams =>
+            request.params match {
+              // Since we require params, did we get them from the request?
+              case Some(requestParams) if requestParams.size == statementParams.size => {
+                applyParams(prep, statementParams, requestParams)
+                prep.execute
+                // Only send the resultset back if we have a response queue
+                request.response_queue map { queueName =>
+                  prep.getResultSet match {
+                    case rs: ResultSet=> encodeResponse(queueName, rs)
+                    case _            => // Do nothing
+                  }
                 }
-                case Some(requestParams) if requestParams.size != params.size => Left("Incorrect number of parameters for " + request.statement)
-                case None => Left("Parameters required for statement " + request.statement)
               }
+              case Some(requestParams) if requestParams.size != statementParams.size => throw new IllegalArgumentException("Incorrect number of parameters for " + request.statement)
+              case None => throw new IllegalArgumentException("Parameters required for statement " + request.statement)
             }
-            // No params, so no reason to do anything
-            case None => Right(prep)
-          }
-        } catch {
-          case e: Exception => {
-            log.error("Exception preparing and executing statement: ", e)
-            Left("Exception: " + e.getMessage)
           }
         }
       }
-      case None => Left("Unknown statement: " + request.statement)
-    }
-    
-    // If we get a proper statement, execute it before returning
-    prepStatement match {
-      case Right(x) => {
-        x.execute()
-      }
-      case _ => // Nothing
-    }
-    prepStatement
+    }    
   }
   
   def applyParams(statement: PreparedStatement, statementParams: Iterable[String], requestParams: Iterable[String]) {
@@ -107,85 +98,38 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     log.debug("Configure in JDBCQueryRunner")
   }
   
-  // XXX http://jim-mcbeath.blogspot.com/2008/09/creating-control-constructs-in-scala.html
-  def withConnection(body: (Connection) => Unit) {
-
-    val conn = pool.getConnection
-    try {
-      body(conn)
-      // Verify this isn't eating all exceptions
-    } finally {
-      if(conn != null) {
-        try {
-          conn.close
-        } catch {
-          case ex: Exception => log.error("Error releasing database connection: ", ex)
-        }
-      }
-    }
-  }
-
   override def handle(json: String) {
 
     log.info("Handling request...")
 
-    val request = parse(json).extract[Request]
-    // var conn: Option[Connection] = None
     var ps: Option[PreparedStatement] = None
     var rs: Option[ResultSet] = None
 
-    println(request)
-
-    try {
-      withConnection { conn =>
-        val result = bindAndExecuteQuery(conn, request)
-        result match {
-          case Right(statement) => {
-            // Things bound and executed
-            ps = Some(statement)
-
-            request.response_queue match {
-              case Some(rqueue) => {
-                // If we have a response queue then we need to send some sort
-                // of response, even if it's just the EOF
-                statement.getResultSet match {
-                  case resultSet: ResultSet => {
-                    // Since we have a response queue and a resultset, we need
-                    // to encode it and send it back
-                    rs = Some(resultSet)
-                    val wrapper = new JSONResultSetWrapper(resultSet = resultSet)
-                    wrapper.foreach { message =>
-                      sendMessage(rqueue, message)
-                    }
-                  }
-                  case null => log.debug("Statement had no ResultSet, not sending items back")
-                }
-                // Cap things off with the EOF
-                sendMessage(rqueue, """{ "EOF":"EOF" }""")
-              }
-              case None => log.debug("Request had no response queue, not sending a response")
-            }
-          }
-          case Left(err) => // XXX Got an error
-        }
-      }
-      // Attempt to bind and execute the query
-    // } catch {
-    //   asdasd XXXX
-    } finally {
-      // Close up all the things that need to be closed
-      // conn match {
-      //   case Some(c) => try { c.close } catch { case e: Exception => } // HONEY BADGER
-      //   case None => //
-      // }
-      rs match {
-        case Some(r) => try { r.close } catch { case e: Exception => } // HONEY BADGER
-        case None => //
-      }
-      ps match {
-        case Some(p) => try { p.close } catch { case e: Exception => } // HONEY BADGER
-        case None => //
+    // Try and turn the JSON into a Request
+    val request = try {
+      Some(parse(json).extract[Request])
+    } catch {
+      case ex: Exception => {
+        log.error("Unable to parse request", ex);
+        None
       }
     }
+    
+    request match {
+      case Some(r) => {
+
+        // Make sure we have a statement to execute before we go to any trouble
+        val statement = statements.get(r.statement)
+        statement match {
+          case Some(statement) => bindAndExecuteQuery(r, statement)
+          // Got no request, bitch if we can
+          case None            => r.response_queue map { rqueue => sendMessage(rqueue, """{ "ERROR":"Unable to parse request!" }""") }
+          // If we have a response queue then cap things off with an EOF
+          r.response_queue map { rqueue => sendMessage(rqueue, """{ "EOF":"EOF" }""") }
+        }
+      }
+      // Crap, this means we'll just ignore it completely. Log an error.
+      case None => log.error("No request found, doing nothing. Item will be ignored and confirmed.")
+    }    
   }
 }

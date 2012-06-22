@@ -1,6 +1,7 @@
 package com.iinteractive.bullfinch.minion
 
 import com.iinteractive.bullfinch.Minion
+import java.sql.{Connection,PreparedStatement,ResultSet}
 import org.apache.commons.dbcp.BasicDataSource
 import scala.collection.JavaConversions._
 
@@ -42,6 +43,36 @@ trait JDBCBased extends Minion {
 		ds.setPassword(password);
 		ds.setUrl(dsn);
 		ds
+  }
+  
+  // XXX http://jim-mcbeath.blogspot.com/2008/09/creating-control-constructs-in-scala.html
+  def withConnection(body: (Connection) => Unit) {
+
+    val conn = pool.getConnection
+    try {
+      body(conn)
+      // Verify this isn't eating all exceptions
+    } finally {
+      if(conn != null) {
+        try { conn.close } catch {
+          case ex: Exception => log.error("Error releasing database connection: ", ex)
+        }
+      }
+    }
+  }
+  
+  def withStatement(conn: Connection, sql: String)(body: (PreparedStatement) => Unit) {
+    
+    val statement = conn.prepareStatement(sql)
+    try {
+      body(statement)
+    } finally {
+      if(statement != null) {
+        try { statement.close } catch {
+          case ex: Exception => log.error("Error preparing statement: ", ex)
+        }
+      }
+    }
   }
   
   override def cancel {
