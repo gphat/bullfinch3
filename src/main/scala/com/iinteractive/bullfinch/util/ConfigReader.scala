@@ -4,6 +4,7 @@ import com.codahale.logula.Logging
 import java.io.{BufferedReader,InputStreamReader}
 import java.net.URL
 import net.liftweb.json._
+import scala.collection.JavaConversions._
 
 object ConfigReader extends Logging {
 
@@ -38,10 +39,12 @@ object ConfigReader extends Logging {
 
         println(sb.toString)
         val config = parse(sb.toString).asInstanceOf[JObject].values
-        println(config.get("config_refresh_seconds"))
         
         Some(ConfigSource(
-          configRefreshSeconds = config.getOrElse("config_refresh_seconds", 300),
+          configRefreshSeconds = config.get("config_refresh_seconds") match {
+            case Some(x)      => x.asInstanceOf[BigInt].intValue
+            case _            => 300
+          },
           // configRefreshSeconds = config find {
           //   case JField("config_refresh_seconds", _) => true
           //   case _ => false
