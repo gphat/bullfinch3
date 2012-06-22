@@ -5,16 +5,6 @@ import com.iinteractive.bullfinch.util.JSONResultSetWrapper
 import java.sql.{Connection,PreparedStatement,ResultSet}
 import net.liftweb.json._
 import scala.collection.JavaConversions._
-import scala.collection.mutable.Buffer
-
-/**
- * Represents a request from Kestrel.
- */
-case class Request(
-  response_queue: Option[String],
-  statement: String,
-  params: Option[Seq[String]]
-)
 
 /**
  * Represents one of the statements available for remote execution.
@@ -23,6 +13,16 @@ case class Statement(
   sql: String,
   params: Option[Seq[String]]
 )
+
+case class SQLRequest(
+  response_queue: Option[String],
+  statements: Seq[String],
+  params: Seq[Seq[String]]
+)
+
+object SQLRequest {
+  implicit val formats = DefaultFormats
+}
 
 /**
  * Minion for executing SQL from a list of pre-defined statements. Leverages
@@ -97,7 +97,6 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
   
   val statementConfig = config.get("statements").asInstanceOf[Map[String,Any]]
 
-  println(statementConfig.values.size)
   val statements = statementConfig.mapValues { more =>
     val newmap = more.asInstanceOf[Map[String,Object]]
     val sql = newmap.get("sql") match {
@@ -125,32 +124,33 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
    * and respond if necessary. Leverages JDBCBased to handle Connection and
    * PreparedStatement management.
    */
-  def bindAndExecuteQuery(request: Request, statement: Statement) {
+  def bindAndExecuteQuery(responseQueue: Option[String], requestParams: Seq[String], statement: Statement) {
     withConnection { conn =>
       withStatement(conn, statement.sql) { prep =>
         // Check if this statement requires parameters
         statement.params map { statementParams =>
-          request.params match {
-            // Since we require params, did we get them from the request?
-            case Some(requestParams) if requestParams.size == statementParams.size => {
-              applyParams(prep, statementParams, requestParams)
-              prep.execute
-              // Only send the resultset back if we have a response queue
-              request.response_queue map { queueName =>
-                prep.getResultSet match {
-                  case rs: ResultSet=> {
-                    try {
-                      encodeResponse(queueName, rs)
-                    } finally {
-                      rs.close
-                    }
-                  }
-                  case _            => // Do nothing
+          applyParams(prep, statementParams, requestParams)
+        }
+        prep.execute
+        // Only send the resultset back if we have a response queue
+        println(responseQueue)
+        responseQueue match {
+          case Some(queueName) => {
+            prep.getResultSet match {
+              case rs: ResultSet=> {
+                try {
+                  encodeResponse(queueName, rs)
+                } finally {
+                  rs.close
                 }
               }
+              case _            => {
+                log.debug("No ResultSet found, not sending a response.")
+              }
             }
-            case Some(requestParams) if requestParams.size != statementParams.size => throw new IllegalArgumentException("Incorrect number of parameters for " + request.statement)
-            case None => throw new IllegalArgumentException("Parameters required for statement " + request.statement)
+          }
+          case None => {
+            log.debug("No response queue, not sending a response")
           }
         }
       }
@@ -197,29 +197,35 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
 
     // Try and turn the JSON into a Request
     val request = try {
-      Some(parse(json).extract[Request])
+      parse(json).extract[SQLRequest]
     } catch {
+      // Crap, this means we'll just ignore it completely. Log an error.
       case ex: Exception => {
         log.error("Unable to parse request", ex);
-        None
+        log.error("Doing nothing. Item will be ignored and confirmed.")
+        return
       }
     }
     
-    request match {
-      case Some(r) => {
+    // Find any invalid queries
+    val invalidStatements = request.statements map { rs =>
+      statements.get(rs)
+    } filterNot { x =>
+      x.isDefined
+    }
+    if(!invalidStatements.isEmpty) {
+      val invalidQueries = invalidStatements.flatten.mkString(",")
+      log.error("Request contain invalid queries: %s" + invalidQueries)
+      request.response_queue map { rqueue => sendMessage(rqueue, "{ \"ERROR\":\"Invalid queries: " + invalidQueries + "\" }") }
+      // Abort, we don't want to run this if one of the queries is bad!
+      return
+    }
 
-        // Make sure we have a statement to execute before we go to any trouble
-        val statement = statements.get(r.statement)
-        statement match {
-          case Some(statement) => bindAndExecuteQuery(r, statement)
-          // Got no request, bitch if we can
-          case None            => r.response_queue map { rqueue => sendMessage(rqueue, """{ "ERROR":"Unable to parse request!" }""") }
-          // If we have a response queue then cap things off with an EOF
-          r.response_queue map { rqueue => sendMessage(rqueue, """{ "EOF":"EOF" }""") }
-        }
-      }
-      // Crap, this means we'll just ignore it completely. Log an error.
-      case None => log.error("No request found, doing nothing. Item will be ignored and confirmed.")
-    }    
+    request.statements zip request.params map { stateParamPair =>
+      val statement = statements.get(stateParamPair._1).get
+      bindAndExecuteQuery(request.response_queue, stateParamPair._2, statement)
+    }
+    // If we have a response queue then cap things off with an EOF
+    request.response_queue map { rqueue => sendMessage(rqueue, """{ "EOF":"EOF" }""") }
   }
 }
