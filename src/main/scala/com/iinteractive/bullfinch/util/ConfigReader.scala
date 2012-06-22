@@ -33,11 +33,9 @@ object ConfigReader extends Logging {
         var sb = new StringBuffer
         while(line != null) {
           sb.append(line)
-          sb.append("\n")
           line = buff.readLine
         }
 
-        println(sb.toString)
         val config = parse(sb.toString).asInstanceOf[JObject].values
         
         Some(ConfigSource(
@@ -45,13 +43,6 @@ object ConfigReader extends Logging {
             case Some(x)      => x.asInstanceOf[BigInt].intValue
             case _            => 300
           },
-          // configRefreshSeconds = config find {
-          //   case JField("config_refresh_seconds", _) => true
-          //   case _ => false
-          // } match {
-          //   case Some(x) => x.extract[Int]
-          //   case None => 300
-          // },
           config = config,
           lastModified = lastModified,
           url = url
