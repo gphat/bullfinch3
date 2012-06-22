@@ -6,7 +6,7 @@ class JDBCTableScanner(config: Option[Map[String,Any]]) extends Minion(config) w
   
   override def configure {
     super.configure
-    log.debug("Configure in JDBC Scanner")
+    log.debug("Configure in JDBCScanner")
   }
   
   def run = {

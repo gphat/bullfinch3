@@ -3,37 +3,35 @@ package com.iinteractive.bullfinch.minion
 import com.iinteractive.bullfinch._
 import com.iinteractive.bullfinch.util.JSONResultSetWrapper
 import java.sql.{Connection,PreparedStatement,ResultSet}
-import java.util.{ArrayList,LinkedHashMap}
 import net.liftweb.json._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Buffer
 
 case class Request(
-  responseQueue: Option[String],
+  response_queue: Option[String],
   statement: String,
   params: Option[Seq[String]]
 )
 
 case class Statement(
   sql: String,
-  params: Option[Buffer[String]]
+  params: Option[Seq[String]]
 )
 
 class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) with QueueMonitor with JDBCBased {
 
   implicit val formats = DefaultFormats
+  
 
   val statementConfig = config.get("statements").asInstanceOf[Map[String,Any]]
+  println(statementConfig.values.size)
   val statements = statementConfig.mapValues { more =>
-    val newmap = more.asInstanceOf[LinkedHashMap[String,Object]].toMap
+    val newmap = more.asInstanceOf[Map[String,Object]]
     val sql = newmap.get("sql") match {
       case Some(sql) => sql.asInstanceOf[String]
       case None => throw new RuntimeException("JDBC Query Runner worker statements must have SQL")
     }
-    val params: Option[Buffer[String]] = newmap.get("params") match {
-      case Some(p) => Some(asScalaBuffer[String](p.asInstanceOf[ArrayList[String]]))
-      case None => None
-    }
+    val params: Option[Seq[String]] = newmap.get("params").asInstanceOf[Option[Seq[String]]]
     Statement(
       sql = sql,
       params = params
@@ -106,7 +104,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
 
   override def configure {
     super.configure
-    log.debug("Configure in JDBC")
+    log.debug("Configure in JDBCQueryRunner")
   }
   
   // XXX http://jim-mcbeath.blogspot.com/2008/09/creating-control-constructs-in-scala.html
@@ -136,6 +134,8 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     var ps: Option[PreparedStatement] = None
     var rs: Option[ResultSet] = None
 
+    println(request)
+
     try {
       withConnection { conn =>
         val result = bindAndExecuteQuery(conn, request)
@@ -144,7 +144,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
             // Things bound and executed
             ps = Some(statement)
 
-            request.responseQueue match {
+            request.response_queue match {
               case Some(rqueue) => {
                 // If we have a response queue then we need to send some sort
                 // of response, even if it's just the EOF
@@ -158,12 +158,12 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
                       sendMessage(rqueue, message)
                     }
                   }
-                  case null => // no resultset
+                  case null => log.debug("Statement had no ResultSet, not sending items back")
                 }
                 // Cap things off with the EOF
                 sendMessage(rqueue, """{ "EOF":"EOF" }""")
               }
-              case None => // No response to send
+              case None => log.debug("Request had no response queue, not sending a response")
             }
           }
           case Left(err) => // XXX Got an error

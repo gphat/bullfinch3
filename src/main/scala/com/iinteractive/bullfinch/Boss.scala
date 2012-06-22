@@ -23,22 +23,22 @@ class Boss(urls: Seq[URL]) extends Logging {
   def start() {
 
     log.info("Starting workers")
-    // workers.foreach { worker =>
-    //   worker._3.start()
-    // }
+    workers.foreach { worker =>
+      worker._3.start()
+    }
   }
   
   def stop() {
     
     log.info("Cancelling minions")
     
-    // workers.foreach { worker =>
-    //   worker._2.asInstanceOf[Minion].cancel
-    // }
-    // 
-    // workers.foreach { worker =>
-    //   worker._3.join()
-    // }
+    workers.foreach { worker =>
+      worker._2.asInstanceOf[Minion].cancel
+    }
+    
+    workers.foreach { worker =>
+      worker._3.join()
+    }
   }
   
   private def prepareWorkers: Seq[(String,Minion,Thread)] = {

@@ -24,7 +24,7 @@ trait KestrelBased extends Minion {
   override def cancel {
     super.cancel
     
-    client.shutdown(10, TimeUnit.SECONDS)
+    client.shutdown(1, TimeUnit.SECONDS) /// XXX Maybe change this?
   }
   
   def confirm(queue: String) {

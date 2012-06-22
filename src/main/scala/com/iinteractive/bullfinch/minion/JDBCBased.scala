@@ -1,7 +1,6 @@
 package com.iinteractive.bullfinch.minion
 
 import com.iinteractive.bullfinch.Minion
-import java.util.LinkedHashMap
 import org.apache.commons.dbcp.BasicDataSource
 import scala.collection.JavaConversions._
 
@@ -54,6 +53,6 @@ trait JDBCBased extends Minion {
   
   override def configure {
     super.configure
-    log.debug("Configure in JDBC")
+    log.debug("Configure in JDBCBased")
   }
 }
