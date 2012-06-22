@@ -5,6 +5,10 @@ import com.codahale.logula.Logging
 import java.net.{MalformedURLException,URL};
 import org.apache.log4j.Level
 
+/**
+ * Entry point. Using `main` here will let you start up an instance of
+ * Bullfinch.
+ */
 object Bullfinch {
 
   Logging.configure { log =>
@@ -27,6 +31,11 @@ object Bullfinch {
     // log.syslog.facility = "local3"
   }
   
+  /**
+   * Start an instance of bullfinch.  Requires at least one valid URL for
+   * a config file.  If any of the URLs are invalid then that config file
+   * will be eliminated and not included in future checks. XXX Fix this?
+   */
   def main(args: Array[String]) {
     
     val configs = args flatMap { arg =>

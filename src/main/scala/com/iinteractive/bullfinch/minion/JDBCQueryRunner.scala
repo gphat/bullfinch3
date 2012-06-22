@@ -7,22 +7,94 @@ import net.liftweb.json._
 import scala.collection.JavaConversions._
 import scala.collection.mutable.Buffer
 
+/**
+ * Represents a request from Kestrel.
+ */
 case class Request(
   response_queue: Option[String],
   statement: String,
   params: Option[Seq[String]]
 )
 
+/**
+ * Represents one of the statements available for remote execution.
+ */
 case class Statement(
   sql: String,
   params: Option[Seq[String]]
 )
 
+/**
+ * Minion for executing SQL from a list of pre-defined statements. Leverages
+ * QueueMonitor and JDBCBased.
+ *
+ * The queries may optionally specify a list of expected parameters by
+ * supplying their types.  The acceptable types are:
+ * 
+ * * BOOLEAN
+ * * INTEGER
+ * * NUMBER
+ * * STRING
+ *
+ * The queue monitor expects configuration like:
+ *
+ *{{{
+ * {
+ *   "workers" : [
+ *   {
+ *     "name" : "Query Runner",
+ *     "worker_class" : "com.iinteractive.bullfinch.minion.JDBCQueryRunner",
+ *     "worker_count" : 2,
+ *     "options"  : {
+ *       "kestrel_host" : "127.0.0.1",
+ *       "kestrel_port" : 22133,
+ *       "subscribe_to" : "test-net-kestrel",
+ *       "timeout" : 10000,
+ *       "connection" : {
+ *         "driver" : "com.mysql.jdbc.Driver",
+ *         "dsn" : "jdbc:mysql://localhost/test",
+ *         "uid" : "root",
+ *         "validation" : "SELECT 1"
+ *       },
+ *       "statements" : {
+ *         "aQuery": {
+ *           "sql": "INSERT INTO table (foo, bar) VALUES (?, ?)",
+ *           "params": [ "STRING", "INTEGER" ]
+ *         },
+ *         "anotherQuery": {
+ *           "sql": "SELECT foo FROM table"
+ *         }
+ *       }
+ *     }
+ *   }  
+ * }
+ *}}}
+ *
+ * The request sent in via kestrel should have a statement (optionally) a
+ * list of parameters and/or a response queue.
+ *
+ * The request (from the Kestrel Queue) should look like:
+ *
+ *{{{
+ *{
+ *  "statement": "qQuery",
+ *  "params": [ "hello", 12 ]
+ *}
+ *}}}
+ *
+ * or, if you don't have params and/or want to see the response
+ *
+ *{{{
+ *{
+ *  "statement": "qnotherQuery",
+ *  "response_queue": "boasdasdasd"
+ *}
+ *}}}
+ */
 class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) with QueueMonitor with JDBCBased {
 
   implicit val formats = DefaultFormats
   
-
   val statementConfig = config.get("statements").asInstanceOf[Map[String,Any]]
   println(statementConfig.values.size)
   val statements = statementConfig.mapValues { more =>
@@ -38,40 +110,57 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     )
   }
 
+  /**
+   * Encode a ResultSet as JSON and send it to the specified queue.
+   */
   def encodeResponse(queue: String, resultSet: ResultSet) {
     new JSONResultSetWrapper(resultSet) foreach { message =>
       sendMessage(queue, message)
     }
   }
 
+  /**
+   * Given a Request and Statement, sanity check, execute, apply parameters
+   * and respond if necessary. Leverages JDBCBased to handle Connection and
+   * PreparedStatement management.
+   */
   def bindAndExecuteQuery(request: Request, statement: Statement) {
     withConnection { conn =>
-      try {
-        withStatement(conn, statement.sql) { prep =>
-          // Check if this statement requires parameters
-          statement.params map { statementParams =>
-            request.params match {
-              // Since we require params, did we get them from the request?
-              case Some(requestParams) if requestParams.size == statementParams.size => {
-                applyParams(prep, statementParams, requestParams)
-                prep.execute
-                // Only send the resultset back if we have a response queue
-                request.response_queue map { queueName =>
-                  prep.getResultSet match {
-                    case rs: ResultSet=> encodeResponse(queueName, rs)
-                    case _            => // Do nothing
+      withStatement(conn, statement.sql) { prep =>
+        // Check if this statement requires parameters
+        statement.params map { statementParams =>
+          request.params match {
+            // Since we require params, did we get them from the request?
+            case Some(requestParams) if requestParams.size == statementParams.size => {
+              applyParams(prep, statementParams, requestParams)
+              prep.execute
+              // Only send the resultset back if we have a response queue
+              request.response_queue map { queueName =>
+                prep.getResultSet match {
+                  case rs: ResultSet=> {
+                    try {
+                      encodeResponse(queueName, rs)
+                    } finally {
+                      rs.close
+                    }
                   }
+                  case _            => // Do nothing
                 }
               }
-              case Some(requestParams) if requestParams.size != statementParams.size => throw new IllegalArgumentException("Incorrect number of parameters for " + request.statement)
-              case None => throw new IllegalArgumentException("Parameters required for statement " + request.statement)
             }
+            case Some(requestParams) if requestParams.size != statementParams.size => throw new IllegalArgumentException("Incorrect number of parameters for " + request.statement)
+            case None => throw new IllegalArgumentException("Parameters required for statement " + request.statement)
           }
         }
       }
-    }    
+    }
   }
   
+  /**
+   * Matches up the pre-determined parameter list for a statement with user-
+   * supplied arguments and binds them to a PreparedStatement. Throws an
+   * IllegalArgumentException if it encounters strangeness.
+   */
   def applyParams(statement: PreparedStatement, statementParams: Iterable[String], requestParams: Iterable[String]) {
     
     // A bit lengthy, but we want to iterate over the params in pairs and
@@ -98,11 +187,13 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     log.debug("Configure in JDBCQueryRunner")
   }
   
+  /**
+   * Override of KestrelBased's `handle` function, executing the request.
+   */
   override def handle(json: String) {
 
     log.info("Handling request...")
 
-    var ps: Option[PreparedStatement] = None
     var rs: Option[ResultSet] = None
 
     // Try and turn the JSON into a Request

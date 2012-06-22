@@ -1,7 +1,14 @@
 package com.iinteractive.bullfinch.minion
 
+/**
+ * Leverages KestrelBased to read messages from a queue and dispatch them to
+ * a `handle` method.
+ */
 trait QueueMonitor extends KestrelBased {
 
+  /**
+   * Method that must be implemented by consumers. 
+   */
   def handle(json: String)
 
   override def configure {
@@ -9,6 +16,9 @@ trait QueueMonitor extends KestrelBased {
     log.info("Configure in QueueMonitor")
   }
   
+  /**
+   * Implementation of the run function that handles reading from a 
+   */
   override def run {
     while(this.shouldContinue) {
 

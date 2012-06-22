@@ -5,6 +5,10 @@ import java.sql.{Connection,PreparedStatement,ResultSet}
 import org.apache.commons.dbcp.BasicDataSource
 import scala.collection.JavaConversions._
 
+/**
+ * A trait that wraps the boring details of creating a connection pool to a
+ * database, managing Connections and PreparedStatements.
+ */
 trait JDBCBased extends Minion {
   
   val connConfig = config.get("connection").asInstanceOf[Map[String,Any]]
@@ -46,6 +50,10 @@ trait JDBCBased extends Minion {
   }
   
   // XXX http://jim-mcbeath.blogspot.com/2008/09/creating-control-constructs-in-scala.html
+  /**
+   * Wrapper function for functions that would like a database connection.
+   * Automatically closes the connection.  Does not catch exceptions.
+   */
   def withConnection(body: (Connection) => Unit) {
 
     val conn = pool.getConnection
@@ -61,6 +69,10 @@ trait JDBCBased extends Minion {
     }
   }
   
+  /**
+   * Wrapper function for functions that would like a PreparedStatement.
+   * Automatically closes the statement. Does not catch exceptions.
+   */
   def withStatement(conn: Connection, sql: String)(body: (PreparedStatement) => Unit) {
     
     val statement = conn.prepareStatement(sql)
@@ -75,13 +87,17 @@ trait JDBCBased extends Minion {
     }
   }
   
+  /**
+   * Cancel implementation from Minion. Closes the connection pool.
+   */
   override def cancel {
     super.cancel
 
     log.debug("Shutting down connection pool")
     pool.close
   }
-  
+
+  // XXX get rid of this
   override def configure {
     super.configure
     log.debug("Configure in JDBCBased")

@@ -6,6 +6,9 @@ import java.util.concurrent.TimeUnit
 import net.spy.memcached.{MemcachedClient,OperationTimeoutException}
 import scala.collection.JavaConversions._
 
+/**
+ * Minion trait for talking to a Kestrel instance.
+ */
 trait KestrelBased extends Minion {
   
   val host = getConfigOrElse[String]("kestrel_host", "127.0.0.1")
@@ -21,18 +24,29 @@ trait KestrelBased extends Minion {
     log.debug("Configure in KestrelBased")
   }
   
+  /**
+   * Minion's `cancel` implementation. Closes the memcached client.
+   */
   override def cancel {
     super.cancel
     
     client.shutdown(1, TimeUnit.SECONDS) /// XXX Maybe change this?
   }
   
+  /**
+   * Close an open transaction with Kestrel.
+   */
   def confirm(queue: String) {
     
     log.debug("Closing " + queue)
     client.get(queue + "/close")
   }
   
+  /**
+   * Block for up to `timeout` milliseconds looking for a message on the
+   * specified queue. If no message is found before the timeout is exceeded,
+   * returns a None.
+   */
   def getMessage(queue: String, tout: Int = timeout): Option[String] = {
     
     try {
@@ -52,6 +66,9 @@ trait KestrelBased extends Minion {
     }
   }
   
+  /**
+   * Send a message to the queue.
+   */
   def sendMessage(queue: String, message: String) {
 
     client.set(queue, 0, message)

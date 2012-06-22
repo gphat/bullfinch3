@@ -6,6 +6,9 @@ import java.net.URL
 import net.liftweb.json._
 import scala.collection.JavaConversions._
 
+/**
+ * Handle the reading of JSON config files via  URL
+ */
 object ConfigReader extends Logging {
 
   implicit val formats = DefaultFormats
@@ -17,6 +20,10 @@ object ConfigReader extends Logging {
     url: URL
   )
   
+  /**
+   * Read in a list of config files via URL. Each URL is read and parsed. If
+   * any individual config file fails then it will be ignored. XXX Fix this, partial read or something.
+   */
   def read(configs: Seq[URL]): Seq[ConfigSource] = {
     
     configs.flatMap { url =>

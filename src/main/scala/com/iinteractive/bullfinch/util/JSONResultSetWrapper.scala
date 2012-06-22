@@ -14,6 +14,9 @@ case class Column(
   ctype: Int
 )
 
+/**
+ * Wraps a ResultSet with an Iterator and serializes it's rows into JSON.
+ */
 class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with Logging {
 
   implicit val formats = DefaultFormats
@@ -35,6 +38,9 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
     }
   }
   
+  /**
+   * Is there another row?
+   */
   override def hasNext: Boolean = {
 
 		// Don't advance the resultset unless next() has cleared the checkedNext
@@ -57,6 +63,9 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
     hasNextFlag
   }
   
+  /**
+   * Return the next row, serialized as JSON.
+   */
   override def next(): String = {
     
     var obj = scala.collection.mutable.Map[String,Any]()
