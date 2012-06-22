@@ -23,7 +23,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
 
   implicit val formats = DefaultFormats
 
-  val statementConfig = config.get("statements").asInstanceOf[LinkedHashMap[String,Object]].toMap
+  val statementConfig = config.get("statements").asInstanceOf[Map[String,Any]]
   val statements = statementConfig.mapValues { more =>
     val newmap = more.asInstanceOf[LinkedHashMap[String,Object]].toMap
     val sql = newmap.get("sql") match {

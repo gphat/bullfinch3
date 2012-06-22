@@ -6,7 +6,7 @@ trait QueueMonitor extends KestrelBased {
 
   override def configure {
     super.configure
-    log.info("Configure in KestrelBased")
+    log.info("Configure in QueueMonitor")
   }
   
   override def run {

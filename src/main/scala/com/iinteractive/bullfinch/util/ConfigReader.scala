@@ -12,7 +12,7 @@ object ConfigReader extends Logging {
 
   case class ConfigSource(
     configRefreshSeconds: Int,
-    config: Map[String,Any],
+    config: JValue,
     lastModified: Long,
     url: URL
   )
@@ -36,13 +36,10 @@ object ConfigReader extends Logging {
           line = buff.readLine
         }
 
-        val config = parse(sb.toString).asInstanceOf[JObject].values
+        val config = parse(sb.toString)
         
         Some(ConfigSource(
-          configRefreshSeconds = config.get("config_refresh_seconds") match {
-            case Some(x)      => x.asInstanceOf[BigInt].intValue
-            case _            => 300
-          },
+          configRefreshSeconds = (config \ "config_refresh_seconds").extract[BigInt].intValue,
           config = config,
           lastModified = lastModified,
           url = url
@@ -57,5 +54,5 @@ object ConfigReader extends Logging {
         }
       }
     }
-  } 
+  }
 }

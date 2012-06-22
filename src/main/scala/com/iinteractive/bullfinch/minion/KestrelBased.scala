@@ -9,16 +9,16 @@ import scala.collection.JavaConversions._
 trait KestrelBased extends Minion {
   
   val host = getConfigOrElse[String]("kestrel_host", "127.0.0.1")
-  val port = getConfigOrElse[Int]("kestrel_port", 22133)
+  val port = getConfigOrElse[BigInt]("kestrel_port", 22133).intValue
   val queue = getConfigOrElse[String]("subscribe_to", "bullfinch")
-  val timeout = getConfigOrElse[Int]("timeout", 10000)
+  val timeout = getConfigOrElse[BigInt]("timeout", 10000).intValue
   lazy val client = new MemcachedClient(
     new InetSocketAddress(host, port)
   )
 
   override def configure {
     super.configure
-    log.info("Configure in KestrelBased")
+    log.debug("Configure in KestrelBased")
   }
   
   override def cancel {

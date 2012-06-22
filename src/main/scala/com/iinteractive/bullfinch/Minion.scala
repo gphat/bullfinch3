@@ -9,7 +9,7 @@ abstract class Minion(protected val config: Option[Map[String,Any]]) extends Run
 
   // XXX remove this
   def configure {
-    log.info("Configure in Minion")
+    log.debug("Configure in Minion")
   }
   
   def getConfigOrElse[A](key: String, default: A): A = {
