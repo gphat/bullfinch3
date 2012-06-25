@@ -11,7 +11,15 @@ import scala.collection.JavaConversions._
  */
 trait JDBCBased extends Minion {
   
-  val connConfig = config.get("connection").asInstanceOf[Map[String,Any]]
+  config match {
+    case Some(x) => // Nothing
+    case None => throw new RuntimeException("JDBC Based workers require a configuration")
+  }
+  
+  val connConfig = config.get("connection") match {
+    case Some(c) => c.asInstanceOf[Map[String,Any]]
+    case None => throw new RuntimeException("JDBC Based workers require a driver!")
+  }
   val driver = connConfig.get("driver") match {
     case Some(d) => d.asInstanceOf[String]
     case None => throw new RuntimeException("JDBC Based workers require a driver!")

@@ -26,7 +26,7 @@ class ConfigurationSpec extends Specification {
       val url2 = this.getClass.getClassLoader.getResource("small.json")
       val configs = ConfigReader.read(Seq(url1, url2))
       configs foreach { config =>
-        config.config.configRefreshSeconds must be_>=(300)
+        config.configRefreshSeconds must be_>=(300)
       }
       1 mustEqual 1 // Junk, the above will blow up if it's wrong
     }
