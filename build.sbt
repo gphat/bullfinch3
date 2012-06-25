@@ -6,6 +6,7 @@ scalaVersion := "2.9.1"
 
 libraryDependencies ++= Seq(
   "org.specs2"                %% "specs2"                 % "1.11"           % "test",
+  "org.hsqldb"                % "hsqldb"                  % "2.2.8",
   "com.codahale"              %% "logula"                 % "2.1.3",
   "commons-dbcp"              % "commons-dbcp"            % "1.4",
   "net.liftweb"               %% "lift-json"              % "2.4",

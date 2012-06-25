@@ -10,13 +10,13 @@ import scala.collection.JavaConversions._
  * database, managing Connections and PreparedStatements.
  */
 trait JDBCBased extends Minion {
-  
-  config match {
-    case Some(x) => // Nothing
+
+  val ourconfig = config match {
+    case Some(c) => c
     case None => throw new RuntimeException("JDBC Based workers require a configuration")
   }
   
-  val connConfig = config.get("connection") match {
+  val connConfig: Map[String,Any] = ourconfig.get("connection") match {
     case Some(c) => c.asInstanceOf[Map[String,Any]]
     case None => throw new RuntimeException("JDBC Based workers require a driver!")
   }
@@ -34,7 +34,7 @@ trait JDBCBased extends Minion {
   }
   val password = connConfig.get("pwd") match {
     case Some(d) => d.asInstanceOf[String]
-    case None => null
+    case None => ""
   }
   val validationQuery = connConfig.get("validation") match {
     case Some(d) => d.asInstanceOf[String]
