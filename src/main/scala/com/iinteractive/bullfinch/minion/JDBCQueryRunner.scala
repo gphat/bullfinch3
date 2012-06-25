@@ -220,8 +220,29 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
       // Abort, we don't want to run this if one of the queries is bad!
       return
     }
+    
+    val reqAndParams = request.statements zip request.params
+    val invalidParams = reqAndParams filterNot { stateParamPair =>
+      // true!
+      val statement = statements.get(stateParamPair._1).get // This will work, tested above
+      statement.params match {
+        case Some(ps) => ps.size == stateParamPair._2.size
+        case None => {
+          // This statement needs no params, verify we didn't get any
+          stateParamPair._2.size == 0 // true if we have none in the request
+        }
+      }
+    }
+    if(!invalidParams.isEmpty) {
+      val invalidQueries = new StringBuffer()
+      invalidParams.foreach { inv => invalidQueries.append(inv._1) }
+      log.error("Request contain queries with invalid parameter counts: %s" + invalidQueries)
+      request.response_queue map { rqueue => sendMessage(rqueue, "{ \"ERROR\":\"Invalid query parameters: " + invalidQueries + "\" }") }
+      // Abort, we don't want to run this if one of the queries is bad!
+      return
+    }
 
-    request.statements zip request.params map { stateParamPair =>
+    reqAndParams map { stateParamPair =>
       val statement = statements.get(stateParamPair._1).get
       bindAndExecuteQuery(request.response_queue, stateParamPair._2, statement)
     }
