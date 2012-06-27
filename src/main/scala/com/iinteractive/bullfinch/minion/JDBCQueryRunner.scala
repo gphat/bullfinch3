@@ -14,6 +14,12 @@ case class Statement(
   params: Option[Seq[String]]
 )
 
+case class SimpleSQLRequest(
+  response_queue: Option[String],
+  statement: String,
+  params: Seq[String]
+)
+
 case class SQLRequest(
   response_queue: Option[String],
   statements: Seq[String],
@@ -133,7 +139,6 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
         }
         prep.execute
         // Only send the resultset back if we have a response queue
-        println(responseQueue)
         responseQueue match {
           case Some(queueName) => {
             prep.getResultSet match {
@@ -195,15 +200,34 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
 
     log.info("Handling request...")
 
-    // Try and turn the JSON into a Request
-    val request = try {
-      parse(json).extract[SQLRequest]
+    // First check for a "simple" request that only uses a single statement
+    // and param.
+    val simpleReq = try {
+      Some(parse(json).extract[SimpleSQLRequest])
     } catch {
-      // Crap, this means we'll just ignore it completely. Log an error.
-      case ex: Exception => {
-        log.error("Unable to parse request", ex);
-        log.error("Doing nothing. Item will be ignored and confirmed.")
-        return
+      case x: Exception => {
+        log.debug("Failed to parse simple request")
+        None
+      }
+    }
+
+    val request = simpleReq match {
+      // If we got a simple statement use it to build a normal one.
+      case Some(req) => SQLRequest(
+        response_queue= req.response_queue,
+        statements    = Seq(req.statement),
+        params        = Seq(req.params)
+      )
+      // If we didn't get a simple statement, try and parse a full-fledged one
+      case None => try {
+        parse(json).extract[SQLRequest]
+      } catch {
+        // Crap, this means we'll just ignore it completely. Log an error.
+        case ex: Exception => {
+          log.error("Unable to parse request", ex);
+          log.error("Doing nothing. Item will be ignored and confirmed.")
+          return
+        }
       }
     }
     
