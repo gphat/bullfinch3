@@ -15,10 +15,23 @@ trait KestrelBased extends Minion {
   val port = getConfigOrElse[BigInt]("kestrel_port", 22133).intValue
   val queue = getConfigOrElse[String]("subscribe_to", "bullfinch")
   val timeout = getConfigOrElse[BigInt]("timeout", 10000).intValue
-  lazy val client = new MemcachedClient(
-    new InetSocketAddress(host, port)
-  )
+  
+  // We want to allow our tests to set a mock memcached client, so this
+  // variable is here to allow us to have it set externally.  In normal
+  // use the lazy call to getConnection will result in a lazily created
+  // client using the above arguments.
+  var protoClient: Option[MemcachedClient] = None
+  lazy val client = getConnection
 
+  def getConnection: MemcachedClient = {
+    protoClient match {
+      case Some(c)=> c
+      case None   => new MemcachedClient(
+        new InetSocketAddress(host, port)
+      )
+    }
+  }
+  
   override def configure {
     super.configure
     log.debug("Configure in KestrelBased")

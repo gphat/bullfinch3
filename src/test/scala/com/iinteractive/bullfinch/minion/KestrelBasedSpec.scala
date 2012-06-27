@@ -3,18 +3,26 @@ package com.iinteractive.bullfinch.minion
 import org.specs2.mutable._
 import com.iinteractive.bullfinch.Minion
 
+import org.specs2.mock._
+import net.spy.memcached.MemcachedClient
+
 class TestKestrelMinion(config: Option[Map[String,Any]]) extends Minion(config) with KestrelBased {
   def run {
     
   }
 }
 
-class KestrelBasedSpec extends Specification {
+class KestrelBasedSpec extends Specification with Mockito {
 
   "KestrelBased" should {
     "succeed with no config" in {
-       new TestKestrelMinion(config = None)
-       1 must beEqualTo(1)
-     }
+      val mockClient: MemcachedClient = mock[MemcachedClient]
+
+      val kes = new TestKestrelMinion(config = None)
+      kes.protoClient = Some(mockClient)
+
+      kes.sendMessage(queue = "someQueue", message = "Message")
+      there was one(mockClient).set("someQueue", 0, "Message")
+    }
   }
 }
