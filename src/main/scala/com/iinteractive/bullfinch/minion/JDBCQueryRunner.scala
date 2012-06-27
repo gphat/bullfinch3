@@ -197,7 +197,6 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
    * Override of KestrelBased's `handle` function, executing the request.
    */
   override def handle(json: String) {
-
     log.info("Handling request...")
 
     // First check for a "simple" request that only uses a single statement
@@ -231,14 +230,23 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
       }
     }
     
-    // Find any invalid queries
+    // Find any invalid queries by creating a list of Eithers and grabbing
+    // the Left values.
     val invalidStatements = request.statements map { rs =>
-      catalog.get(rs)
-    } filterNot { x =>
-      x.isDefined
+      catalog.get(rs) match {
+        case Some(s) => Right(s)
+        case None => Left(rs)
+      }
+    } filter { x =>
+      x.isLeft
+    } map { y =>
+      y match {
+        case Left(name) => name
+        case _ => "" // Won't ever happen
+      }
     }
-    if(!invalidStatements.isEmpty) {
-      val invalidQueries = invalidStatements.flatten.mkString(",")
+    if(invalidStatements.size > 0) {
+      val invalidQueries = invalidStatements.mkString(", ")
       log.error("Request contain invalid queries: %s" + invalidQueries)
       request.response_queue map { rqueue => sendMessage(rqueue, "{ \"ERROR\":\"Invalid queries: " + invalidQueries + "\" }") }
       // Abort, we don't want to run this if one of the queries is bad!
@@ -268,7 +276,15 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
 
     reqAndParams map { stateParamPair =>
       val statement = catalog.get(stateParamPair._1).get
-      bindAndExecuteQuery(request.response_queue, stateParamPair._2, statement)
+      try {
+        bindAndExecuteQuery(request.response_queue, stateParamPair._2, statement)
+      } catch {
+        case ex: Exception => {
+          log.error("SQL Failed", ex)
+          ex.printStackTrace
+          request.response_queue map { rqueue => sendMessage(rqueue, "{ \"ERROR\":\"Error executing SQL: " + ex.getMessage + "\" }") }
+        }
+      }
     }
     // If we have a response queue then cap things off with an EOF
     request.response_queue map { rqueue => sendMessage(rqueue, """{ "EOF":"EOF" }""") }

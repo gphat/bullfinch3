@@ -1,10 +1,10 @@
 package com.iinteractive.bullfinch.minion
 
+import org.specs2.mock._
 import org.specs2.mutable._
 import com.iinteractive.bullfinch.Minion
 import java.util.concurrent.TimeUnit
 
-import org.specs2.mock._
 import net.spy.memcached.MemcachedClient
 
 class TestKestrelMinion(config: Option[Map[String,Any]]) extends Minion(config) with KestrelBased {
