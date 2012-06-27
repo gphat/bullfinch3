@@ -23,8 +23,8 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
 
 	// Use this as a sentinel to determine if we've already called next(), this
 	// way we can peek ahead in the hasNext.
-	var checkedNext: Boolean = false;
-	var hasNextFlag: Boolean = false;
+	var checkedNext = false
+	var hasNextFlag = false
 
   val columns = {
     val md = resultSet.getMetaData
@@ -71,7 +71,6 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
     var obj = scala.collection.mutable.Buffer[JField]()
     
     obj += JField(name = "row_num", value = JInt(resultSet.getRow))
-    // obj += ("row_num" -> resultSet.getRow)
     
     columns.foreach { col =>
       col.ctype match {
@@ -105,6 +104,6 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
     
     // Reset the sentinel so that the next hasNext will work
     checkedNext = false
-    pretty(render(decompose(obj)))
+    compact(render(decompose(obj)))
   }
 }

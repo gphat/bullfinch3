@@ -54,6 +54,7 @@ object Bullfinch {
     }
     
     val boss = new Boss(urls = configs)
+    // XXX Change this
     boss.start
     Thread.sleep(2000)
     boss.stop

@@ -103,7 +103,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
   
   val statementConfig = config.get("statements").asInstanceOf[Map[String,Any]]
 
-  val statements = statementConfig.mapValues { more =>
+  val catalog = statementConfig.mapValues { more =>
     val newmap = more.asInstanceOf[Map[String,Object]]
     val sql = newmap.get("sql") match {
       case Some(sql) => sql.asInstanceOf[String]
@@ -233,7 +233,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     
     // Find any invalid queries
     val invalidStatements = request.statements map { rs =>
-      statements.get(rs)
+      catalog.get(rs)
     } filterNot { x =>
       x.isDefined
     }
@@ -248,7 +248,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     val reqAndParams = request.statements zip request.params
     val invalidParams = reqAndParams filterNot { stateParamPair =>
       // true!
-      val statement = statements.get(stateParamPair._1).get // This will work, tested above
+      val statement = catalog.get(stateParamPair._1).get // This will work, tested above
       statement.params match {
         case Some(ps) => ps.size == stateParamPair._2.size
         case None => {
@@ -267,7 +267,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     }
 
     reqAndParams map { stateParamPair =>
-      val statement = statements.get(stateParamPair._1).get
+      val statement = catalog.get(stateParamPair._1).get
       bindAndExecuteQuery(request.response_queue, stateParamPair._2, statement)
     }
     // If we have a response queue then cap things off with an EOF
