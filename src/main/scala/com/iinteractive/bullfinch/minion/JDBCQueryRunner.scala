@@ -15,12 +15,14 @@ case class Statement(
 )
 
 case class SimpleSQLRequest(
+  use_transaction: Option[Boolean],
   response_queue: Option[String],
   statement: String,
   params: Seq[String]
 )
 
 case class SQLRequest(
+  use_transaction: Option[Boolean],
   response_queue: Option[String],
   statements: Seq[String],
   params: Seq[Seq[String]]
@@ -130,8 +132,8 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
    * and respond if necessary. Leverages JDBCBased to handle Connection and
    * PreparedStatement management.
    */
-  def bindAndExecuteQuery(responseQueue: Option[String], requestParams: Seq[String], statement: Statement) {
-    withConnection { conn =>
+  def bindAndExecuteQuery(conn: Connection, responseQueue: Option[String], requestParams: Seq[String], statement: Statement) {
+    // withConnection(useTransaction) { conn =>
       withStatement(conn, statement.sql) { prep =>
         // Check if this statement requires parameters
         statement.params map { statementParams =>
@@ -159,7 +161,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
           }
         }
       }
-    }
+    // }
   }
   
   /**
@@ -213,6 +215,7 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     val request = simpleReq match {
       // If we got a simple statement use it to build a normal one.
       case Some(req) => SQLRequest(
+        use_transaction = req.use_transaction,
         response_queue= req.response_queue,
         statements    = Seq(req.statement),
         params        = Seq(req.params)
@@ -274,15 +277,16 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
       return
     }
 
-    reqAndParams map { stateParamPair =>
-      val statement = catalog.get(stateParamPair._1).get
-      try {
-        bindAndExecuteQuery(request.response_queue, stateParamPair._2, statement)
-      } catch {
-        case ex: Exception => {
-          log.error("SQL Failed", ex)
-          ex.printStackTrace
-          request.response_queue map { rqueue => sendMessage(rqueue, "{ \"ERROR\":\"Error executing SQL: " + ex.getMessage + "\" }") }
+    withConnection(request.use_transaction) { conn =>
+      reqAndParams map { stateParamPair =>
+        val statement = catalog.get(stateParamPair._1).get
+        try {
+          bindAndExecuteQuery(conn, request.response_queue, stateParamPair._2, statement)
+        } catch {
+          case ex: Exception => {
+            try { conn.rollback; log.error("Rolled back transaction") } catch { case ex2: Exception => log.error("Error rolling back: ", ex2) }
+            request.response_queue map { rqueue => sendMessage(rqueue, "{ \"ERROR\":\"Error executing SQL: " + ex.getMessage + "\" }") }
+          }
         }
       }
     }

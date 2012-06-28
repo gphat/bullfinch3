@@ -59,17 +59,29 @@ trait JDBCBased extends Minion {
   
   /**
    * Wrapper function for functions that would like a database connection.
-   * Automatically closes the connection.  Does not catch exceptions.
+   * Automatically closes the connection.  Does not catch exceptions or handle
+   * rollbacks!
    */
-  def withConnection(body: (Connection) => Unit) {
+  def withConnection(useTransaction: Option[Boolean])(body: (Connection) => Unit) {
+
+    val useTxn = useTransaction match {
+      case Some(switch) => switch
+      case None         => false
+    }
 
     val conn = pool.getConnection
     try {
+      if(useTxn) {
+        conn.setAutoCommit(false)
+      }
       body(conn)
       // Verify this isn't eating all exceptions
+      if(useTxn) {
+        conn.commit
+      }
     } finally {
       if(conn != null) {
-        try { conn.close } catch {
+        try { conn.setAutoCommit(false); conn.close } catch {
           case ex: Exception => log.error("Error releasing database connection: ", ex)
         }
       }

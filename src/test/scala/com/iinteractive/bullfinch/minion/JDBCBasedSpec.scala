@@ -9,7 +9,7 @@ class TestJDBCMinion(config: Option[Map[String,Any]]) extends Minion(config) wit
   }
   
   def testMethod = {
-    withConnection { conn =>
+    withConnection(Some(false)) { conn =>
       val sql = "CREATE TABLE TEST_TABLE (an_int INTEGER, a_float FLOAT, a_bool BOOLEAN, a_string VARCHAR(32))"
       withStatement(conn, sql) { statement =>
         statement.execute
