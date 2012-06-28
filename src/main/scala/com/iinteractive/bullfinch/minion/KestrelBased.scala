@@ -32,11 +32,6 @@ trait KestrelBased extends Minion {
     }
   }
   
-  override def configure {
-    super.configure
-    log.debug("Configure in KestrelBased")
-  }
-  
   /**
    * Minion's `cancel` implementation. Closes the memcached client.
    */

@@ -11,11 +11,6 @@ trait QueueMonitor extends KestrelBased {
    */
   def handle(json: String)
 
-  override def configure {
-    super.configure
-    log.info("Configure in QueueMonitor")
-  }
-  
   /**
    * Implementation of the run function that handles reading from a 
    */

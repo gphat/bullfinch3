@@ -115,10 +115,4 @@ trait JDBCBased extends Minion {
     log.debug("Shutting down connection pool")
     pool.close
   }
-
-  // XXX get rid of this
-  override def configure {
-    super.configure
-    log.debug("Configure in JDBCBased")
-  }
 }

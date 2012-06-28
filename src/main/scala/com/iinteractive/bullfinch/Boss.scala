@@ -16,7 +16,7 @@ class Boss(urls: Seq[URL]) extends Logging {
   case class WorkerConfig(
     name: String,
     className: String,
-    count: Option[BigInt],
+    count: BigInt,
     options: Option[Map[String,Any]]
   )
   
@@ -54,19 +54,21 @@ class Boss(urls: Seq[URL]) extends Logging {
         WorkerConfig(
           name      = wc.get("name").get.asInstanceOf[String],
           className = wc.get("worker_class").get.asInstanceOf[String],
-          count     = wc.get("worker_count").asInstanceOf[Option[BigInt]],
+          count     = wc.get("worker_count").asInstanceOf[BigInt],
           options   = wc.get("options").asInstanceOf[Option[Map[String,Any]]]
         )
       }
     }
 
-    // XXX Honor count!!
-    workerConfigs.map { wc =>
+    workerConfigs.flatMap { wc =>
       val ins = Class.forName(wc.className).getDeclaredConstructor(
         classOf[Option[Map[String,Any]]]
       ).newInstance(wc.options).asInstanceOf[Minion]
-      ins.configure // XXX Remove
-      (wc.name, ins, new Thread(ins))
+
+      log.info("Starting {} instances of {}", wc.count, wc.name)
+      1.to(wc.count.intValue) map { count =>
+        (wc.name, ins, new Thread(ins))
+      }
     }
   }
 }

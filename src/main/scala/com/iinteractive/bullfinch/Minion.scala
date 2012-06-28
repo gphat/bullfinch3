@@ -10,11 +10,6 @@ abstract class Minion(protected val config: Option[Map[String,Any]]) extends Run
 
   var cancelled = false
 
-  // XXX remove this
-  def configure {
-    log.debug("Configure in Minion")
-  }
-  
   /**
    * Convenience function for retrieving config values in the style of
    * `getOrElse`.

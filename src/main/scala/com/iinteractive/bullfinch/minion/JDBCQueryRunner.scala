@@ -190,11 +190,6 @@ class JDBCQueryRunner(config: Option[Map[String,Any]]) extends Minion(config) wi
     }
   }
 
-  override def configure {
-    super.configure
-    log.debug("Configure in JDBCQueryRunner")
-  }
-  
   /**
    * Override of KestrelBased's `handle` function, executing the request.
    */
