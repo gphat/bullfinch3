@@ -162,7 +162,6 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
       messages.clear
 
       queryRunner.handle("""{"response_queue":"foobar","statements":["selekta"],"params":[[]]}""")
-      println(messages)
       messages.size must beEqualTo(2)
       messages(0) must beEqualTo("""["row_num":1,"AN_INT":1,"A_STRING":"FOO"]""")
       messages(1) must beEqualTo("""{ "EOF":"EOF" }""")
