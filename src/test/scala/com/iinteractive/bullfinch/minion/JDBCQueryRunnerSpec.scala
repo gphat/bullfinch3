@@ -19,7 +19,7 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
     ),
     "statements" -> Map(
       "selekta" -> Map(
-        "sql" -> "SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS"
+        "sql" -> "SELECT an_int, a_string FROM PUBLIC.TEST_TABLE"
       ),
       "creata" -> Map(
         "sql" -> "CREATE TABLE PUBLIC.TEST_TABLE (an_int INTEGER, a_string VARCHAR(32))"
@@ -151,7 +151,7 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
       messages(1) must beEqualTo("""{ "EOF":"EOF" }""")
       messages.clear
 
-      queryRunner.handle("""{"response_queue":"foobar","statements":["creata"],"params":[]}""")
+      queryRunner.handle("""{"response_queue":"foobar","statements":["creata"],"params":[[]]}""")
       // We won't get anything but an EOF because it's a CREATE
       messages.size must beEqualTo(1)
       messages.clear
@@ -161,10 +161,11 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
       messages.size must beEqualTo(1)
       messages.clear
 
-      queryRunner.handle("""{"response_queue":"foobar","statements":["selekta"],"params":[]}""")
-      // We won't get anything back from this because we did not have a response queue
-      messages.size must beEqualTo(1)
-      messages(0) must beEqualTo("""{ "EOF":"EOF" }""")
+      queryRunner.handle("""{"response_queue":"foobar","statements":["selekta"],"params":[[]]}""")
+      println(messages)
+      messages.size must beEqualTo(2)
+      messages(0) must beEqualTo("""["row_num":1,"AN_INT":1,"A_STRING":"FOO"]""")
+      messages(1) must beEqualTo("""{ "EOF":"EOF" }""")
       messages.clear
       
       1 must beEqualTo(1)

@@ -2,7 +2,7 @@ package com.iinteractive
 
 import com.iinteractive.bullfinch._
 import com.codahale.logula.Logging
-import java.net.{MalformedURLException,URL};
+import java.net.{MalformedURLException,URL}
 import org.apache.log4j.Level
 
 /**
@@ -12,7 +12,7 @@ import org.apache.log4j.Level
 object Bullfinch {
 
   Logging.configure { log =>
-    log.registerWithJMX = true
+    log.registerWithJMX = false
 
     log.level = Level.DEBUG
     // log.loggers("com.myproject.weebits") = Level.OFF
