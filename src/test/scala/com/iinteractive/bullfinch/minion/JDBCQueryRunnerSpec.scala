@@ -12,7 +12,7 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
   val validConfig = Map[String,Any](
     "connection" -> Map(
       "driver"  -> "org.hsqldb.jdbc.JDBCDriver",
-      "dsn"     -> "jdbc:hsqldb:mem:bullfinch;shutdown=true",
+      "dsn"     -> "jdbc:hsqldb:mem:bfinch;shutdown=true",
       "uid"     -> "SA",
       "pwd"     -> "",
       "validation" -> "SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS"
@@ -20,6 +20,13 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
     "statements" -> Map(
       "selekta" -> Map(
         "sql" -> "SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS"
+      ),
+      "creata" -> Map(
+        "sql" -> "CREATE TABLE PUBLIC.TEST_TABLE (an_int INTEGER, a_string VARCHAR(32))"
+      ),
+      "inserta" -> Map(
+        "sql" -> "INSERT INTO PUBLIC.TEST_TABLE (an_int, a_string) VALUES (?, ?)",
+        "params" -> Seq("INTEGER","STRING")
       ),
       "broken" -> Map(
         "sql" -> "ASDASDASDSD"
@@ -33,7 +40,7 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
       val config = Map[String,Any](
         "connection" -> Map(
           "driver"  -> "org.hsqldb.jdbc.JDBCDriver",
-          "dsn"     -> "jdbc:hsqldb:mem:bullfinch;shutdown=true",
+          "dsn"     -> "jdbc:hsqldb:mem:bfinch;shutdown=true",
           "uid"     -> "SA",
           "pwd"     -> "",
           "validation" -> "SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS"
@@ -144,9 +151,14 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
       messages(1) must beEqualTo("""{ "EOF":"EOF" }""")
       messages.clear
 
-      queryRunner.handle("""{"statements":["creata"],"params":[]}""")
-      // We won't get anything back from this because we did not have a response queue
-      messages.size must beEqualTo(0)
+      queryRunner.handle("""{"response_queue":"foobar","statements":["creata"],"params":[]}""")
+      // We won't get anything but an EOF because it's a CREATE
+      messages.size must beEqualTo(1)
+      messages.clear
+
+      queryRunner.handle("""{"response_queue":"foobar","statements":["inserta"],"params":[[1,"FOO"]]}""")
+      // We won't get anything but an EOF because it's an INSERT
+      messages.size must beEqualTo(1)
       messages.clear
 
       queryRunner.handle("""{"response_queue":"foobar","statements":["selekta"],"params":[]}""")
