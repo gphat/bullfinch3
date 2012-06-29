@@ -47,11 +47,8 @@ class Boss(urls: Seq[URL]) extends Logging {
     // Iterate over each config file and create the workers contained therein.
     // Use flatMap so that the lists are flattened down into a single list,
     // rather than a list of lists.
-    val maybeConfigs = configs values
-
-    val realConfigs = maybeConfigs filter { maybeConfig => maybeConfig.isDefined } flatten
-
-    val workerConfigs = realConfigs flatMap { cs =>
+    val wcs = configs.values
+    val workerConfigs = wcs flatMap { cs =>
 
       val workers = (cs.config \\ "workers").values.asInstanceOf[List[Map[String,Any]]]
       workers.map { wc =>
