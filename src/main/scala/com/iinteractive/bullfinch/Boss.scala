@@ -3,6 +3,7 @@ package com.iinteractive.bullfinch
 import com.iinteractive.bullfinch.util.ConfigReader
 import com.codahale.logula.Logging
 import java.net.URL
+import java.util.concurrent.TimeoutException
 import net.liftweb.json._
 import scala.collection.JavaConversions._
 
@@ -24,6 +25,7 @@ class Boss(urls: Seq[URL]) extends Logging {
 
     log.info("Starting workers")
     workers.foreach { worker =>
+      log.info("Starting {}", worker._1)
       worker._3.start()
     }
   }
@@ -38,6 +40,13 @@ class Boss(urls: Seq[URL]) extends Logging {
     
     workers.foreach { worker =>
       worker._3.join()
+    }
+  }
+
+  def waitForConfigChanges {
+    while(true) {
+      Thread.sleep(60 * 1000)
+      throw new TimeoutException
     }
   }
 

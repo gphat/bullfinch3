@@ -9,7 +9,7 @@ import org.apache.log4j.Level
  * Entry point. Using `main` here will let you start up an instance of
  * Bullfinch.
  */
-object Bullfinch {
+object Bullfinch extends Logging {
 
   Logging.configure { log =>
     log.registerWithJMX = false
@@ -52,11 +52,13 @@ object Bullfinch {
       error("Must provide a config file!")
       return
     }
-    
-    val boss = new Boss(urls = configs)
-    // XXX Change this
-    boss.start
-    Thread.sleep(2000)
-    boss.stop
+
+    while(true) {
+      val boss = new Boss(urls = configs)
+      boss.start
+      boss.waitForConfigChanges
+      log.info("Config changed, restarting")
+      boss.stop
+    }
   }
 }
