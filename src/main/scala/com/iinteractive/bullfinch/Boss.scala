@@ -40,14 +40,18 @@ class Boss(urls: Seq[URL]) extends Logging {
       worker._3.join()
     }
   }
-  
+
   private def prepareWorkers: Seq[(String,Minion,Thread)] = {
     
     log.debug("Preparing workers")
     // Iterate over each config file and create the workers contained therein.
     // Use flatMap so that the lists are flattened down into a single list,
     // rather than a list of lists.
-    val workerConfigs = configs.flatMap { cs =>
+    val maybeConfigs = configs values
+
+    val realConfigs = maybeConfigs filter { maybeConfig => maybeConfig.isDefined } flatten
+
+    val workerConfigs = realConfigs flatMap { cs =>
 
       val workers = (cs.config \\ "workers").values.asInstanceOf[List[Map[String,Any]]]
       workers.map { wc =>
@@ -69,6 +73,6 @@ class Boss(urls: Seq[URL]) extends Logging {
       1.to(wc.count.intValue) map { count =>
         (wc.name, ins, new Thread(ins))
       }
-    }
+    } toSeq
   }
 }

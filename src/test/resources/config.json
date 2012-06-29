@@ -1,6 +1,5 @@
 {
-  "config_refresh_seconds": 300,
-	"performance": {
+  "performance": {
 		"collect": false
 	},
     "workers" : [

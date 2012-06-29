@@ -14,19 +14,23 @@ object ConfigReader extends Logging {
   implicit val formats = DefaultFormats
 
   case class ConfigSource(
-    configRefreshSeconds: Int,
     config: JValue,
-    lastModified: Long,
-    url: URL
+    lastModified: Long
   )
   
   /**
-   * Read in a list of config files via URL. Each URL is read and parsed. If
-   * any individual config file fails then it will be ignored. XXX Fix this, partial read or something.
+   * Read in a list of config files via URL. Each URL is read and parsed.
+   * Successful config files will have a `Some[ConfigSource]` while failed
+   * ones will have a `None` as a member of the returned Map, keyed by
+   * the string representations of the URL.
+   *
+   * This use of `Option` was chosen to make it possible to reload configs
+   * in the future as well as to allow merging of "last-seen" config
+   * information if a subsequent re-read fails.
    */
-  def read(configs: Seq[URL]): Seq[ConfigSource] = {
+  def read(configs: Seq[URL]): Map[URL,Option[ConfigSource]] = {
     
-    configs.flatMap { url =>
+    Map(configs map { url =>
       try {
         log.debug("Attempting to read '" + url + "'")
 
@@ -44,12 +48,10 @@ object ConfigReader extends Logging {
         }
 
         val config = parse(sb.toString)
-        
-        Some(ConfigSource(
-          configRefreshSeconds = (config \ "config_refresh_seconds").extract[BigInt].intValue,
+
+        url -> Some(ConfigSource(
           config = config,
-          lastModified = lastModified,
-          url = url
+          lastModified = lastModified
         ))
       } catch {
         // We don't really care why the config failed, we just report
@@ -57,9 +59,50 @@ object ConfigReader extends Logging {
         case e => {
           e.printStackTrace
           log.error("Failed to parse config '" + url + "', stacktrace follows", e)
-          None
         }
+        url -> None
+      }
+    }: _*)
+  }
+
+  /**
+   * Returns a `Tuple2` containing a boolean that signals if the returned
+   * config is different from the one passed in and a (possible new) map
+   * of `ConfigSource`s.  The result of this call can be used to create a
+   * new `Boss` instance.
+   */
+  def reRead(oldConfigs: Map[URL,Option[ConfigSource]]): (Boolean,Map[URL,Option[ConfigSource]]) = {
+
+    var changed = false
+
+    val urls = oldConfigs.keys.toSeq
+    val newConfigs = read(urls)
+
+    val result = urls.map { url =>
+      val oldC = oldConfigs.get(url).get // We know these exist
+      val newC = newConfigs.get(url).get // already, so .get em
+
+      oldC match {
+        case None if(newC.isDefined) => {
+          // New config is Some, use it
+          changed = true
+          newC
+        }
+        case Some(conf) => {
+          // Check if config was modified more recently
+          newC match {
+            case Some(c) if c.lastModified > conf.lastModified => {
+              changed = true
+              newC
+            }
+            case None => oldC // Use the old one
+          }
+        }
+        case _ => oldC // Use the old one
       }
     }
+
+    val resultMap = Map(urls zip result: _*)
+    (changed -> resultMap)
   }
 }
