@@ -65,15 +65,22 @@ object ConfigReader extends Logging {
     val urls = oldConfigs.keys.toSeq
     val newConfigs = read(urls)
 
-    val result = urls.map { url =>
-      val oldC = oldConfigs.get(url).get // We know these exist
-      val newC = newConfigs.get(url).get // already, so .get em
+    val result = try {
+      urls.map { url =>
+        val oldC = oldConfigs.get(url).get // We know these exist
+        val newC = newConfigs.get(url).get // already, so .get em
 
-      // Check if config was modified more recently
-      if(newC.lastModified > oldC.lastModified) {
-        true
-      } else {
-        false
+        // Check if config was modified more recently
+        if(newC.lastModified > oldC.lastModified) {
+          true
+        } else {
+          false
+        }
+      }
+    } catch {
+      case ex: Exception => {
+        log.error("Failed to open & parse configs", ex)
+        return false
       }
     }
 
