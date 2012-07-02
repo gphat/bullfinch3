@@ -7,6 +7,8 @@ import java.sql.{Connection,DriverManager}
 
 class JSONResultSetWrapperSpec extends Specification {
 
+  sequential
+
   "JSONResultSetWrapper" should {
     "properly serialize a resultset" in {
 
@@ -28,15 +30,17 @@ class JSONResultSetWrapperSpec extends Specification {
       wrapper.hasNext must beEqualTo(true) // Again, as it shouldn't matter
       
       val s = wrapper.next
-      s must beEqualTo("""["row_num":1,"FOO":1,"BAR":"Hello"]""")
+      s must beEqualTo("""{"row_num":1,"FOO":1,"BAR":"Hello"}""")
       
       wrapper.hasNext must beEqualTo(true)
       wrapper.hasNext must beEqualTo(true) // Shouldn't matter, must be checked
       
       val s2 = wrapper.next
-      s2 must beEqualTo("""["row_num":2,"FOO":2,"BAR":"World!"]""")
+      s2 must beEqualTo("""{"row_num":2,"FOO":2,"BAR":"World!"}""")
       
       wrapper.hasNext must beEqualTo(false)
+
+      conn.close
       
       1 must beEqualTo(1)
     }

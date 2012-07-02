@@ -45,6 +45,8 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
     )
   )
 
+  sequential
+
   "The Query Runner" should {
     "fail with no statements" in {
     
@@ -179,7 +181,7 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
     
       queryRunner.handle("""{"response_queue":"foobar","statements":["selekta"],"params":[[]]}""")
       messages.size must beEqualTo(2)
-      messages(0) must beEqualTo("""["row_num":1,"AN_INT":1,"A_STRING":"FOO"]""")
+      messages(0) must beEqualTo("""{"row_num":1,"AN_INT":1,"A_STRING":"FOO"}""")
       messages(1) must beEqualTo("""{ "EOF":"EOF" }""")
       messages.clear
       
@@ -220,6 +222,7 @@ class JDBCQueryRunnerSpec extends Specification with Mockito {
       messages.size must beEqualTo(1)
       messages.clear
       
+      queryRunner.cancel
       1 must beEqualTo(1)
     }
   }

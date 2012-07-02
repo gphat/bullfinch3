@@ -62,7 +62,7 @@ trait JDBCBased extends Minion {
    * Automatically closes the connection.  Does not catch exceptions or handle
    * rollbacks!
    */
-  def withConnection(useTransaction: Option[Boolean])(body: (Connection) => Unit) {
+  def withConnection(useTransaction: Option[Boolean] = Some(false))(body: (Connection) => Unit) {
 
     val useTxn = useTransaction match {
       case Some(switch) => switch

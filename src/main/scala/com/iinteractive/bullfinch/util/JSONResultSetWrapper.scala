@@ -68,27 +68,27 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
    */
   override def next(): String = {
     
-    var obj = scala.collection.mutable.Buffer[JField]()
+    var obj = scala.collection.mutable.HashMap[String,JValue]()
     
-    obj += JField(name = "row_num", value = JInt(resultSet.getRow))
+    obj += ("row_num" -> JInt(resultSet.getRow))
     
     columns.foreach { col =>
       col.ctype match {
-        case Types.CHAR | Types.VARCHAR | Types.LONGVARCHAR => obj += JField(name = col.label, JString(resultSet.getString(col.index)))
-        case Types.NUMERIC | Types.DECIMAL                  => obj += JField(name = col.label, JDouble(resultSet.getBigDecimal(col.index).doubleValue))
-        case Types.BIT | Types.BOOLEAN                      => obj += JField(name = col.label, JBool(resultSet.getBoolean(col.index)))
-        case Types.TINYINT | Types.SMALLINT | Types.INTEGER => obj += JField(name = col.label, JInt(resultSet.getInt(col.index)))
-        case Types.BIGINT                                   => obj += JField(name = col.label, JInt(resultSet.getLong(col.index)))
-        case Types.REAL | Types.FLOAT                       => obj += JField(name = col.label, JDouble(resultSet.getFloat(col.index)))
-        case Types.DOUBLE                                   => obj += JField(name = col.label, JDouble(resultSet.getDouble(col.index)))
-        case Types.TIMESTAMP                                => obj += JField(name = col.label, JString(resultSet.getString(col.index)))
+        case Types.CHAR | Types.VARCHAR | Types.LONGVARCHAR => obj += (col.label -> JString(resultSet.getString(col.index)))
+        case Types.NUMERIC | Types.DECIMAL                  => obj += (col.label -> JDouble(resultSet.getBigDecimal(col.index).doubleValue))
+        case Types.BIT | Types.BOOLEAN                      => obj += (col.label -> JBool(resultSet.getBoolean(col.index)))
+        case Types.TINYINT | Types.SMALLINT | Types.INTEGER => obj += (col.label -> JInt(resultSet.getInt(col.index)))
+        case Types.BIGINT                                   => obj += (col.label -> JInt(resultSet.getLong(col.index)))
+        case Types.REAL | Types.FLOAT                       => obj += (col.label -> JDouble(resultSet.getFloat(col.index)))
+        case Types.DOUBLE                                   => obj += (col.label -> JDouble(resultSet.getDouble(col.index)))
+        case Types.TIMESTAMP                                => obj += (col.label -> JString(resultSet.getString(col.index)))
         case Types.DATE                                     => {
           val res = resultSet.getDate(col.index)
           val str = res match {
             case null => null
             case _ => res.toString
           }
-          obj += JField(name = col.label, JString(str))
+          obj += (col.label -> JString(str))
         }
         case Types.TIME                                     => {
           val res = resultSet.getTime(col.index)
@@ -96,7 +96,7 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
             case null => null
             case _ => res.toString
           }
-          obj += JField(name = col.label, JString(str))
+          obj += (col.label -> JString(str))
         }
         case _ => throw new SQLException("Unrecognized type for column " + col.label + ": " + col.ctype)
       }
@@ -104,6 +104,6 @@ class JSONResultSetWrapper(resultSet: ResultSet) extends Iterator[String] with L
     
     // Reset the sentinel so that the next hasNext will work
     checkedNext = false
-    compact(render(decompose(obj)))
+    compact(render(decompose(obj.toMap)))
   }
 }
